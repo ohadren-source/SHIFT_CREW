@@ -161,7 +161,6 @@ def get_tasks(
     """Get all tasks for given shift and role"""
     
     tasks = db.query(Task).filter(
-        Task.shift_id == shift_id,
         Task.facility_id == facility_id,
         Task.assigned_role == current_staff.role_id
     ).all()
