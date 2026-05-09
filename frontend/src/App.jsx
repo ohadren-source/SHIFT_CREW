@@ -12,27 +12,16 @@ function App() {
 
   useEffect(() => {
     if (token) {
-      // Verify token is still valid
-      fetch(`${API_URL}/tasks?shift_id=1&facility_id=1`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-        .then(res => {
-          if (res.ok) {
-            // Token valid, parse from JWT
-            const payload = JSON.parse(atob(token.split('.')[1]))
-            setCurrentStaff({ id: payload.sub })
-            setLoading(false)
-          } else {
-            localStorage.removeItem('session_token')
-            setToken(null)
-            setLoading(false)
-          }
-        })
-        .catch(() => {
-          localStorage.removeItem('session_token')
-          setToken(null)
-          setLoading(false)
-        })
+      // Token exists in localStorage, user is logged in
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        setCurrentStaff({ id: payload.sub })
+      } catch (err) {
+        console.error('Invalid token:', err)
+        localStorage.removeItem('session_token')
+        setToken(null)
+      }
+      setLoading(false)
     } else {
       setLoading(false)
     }
