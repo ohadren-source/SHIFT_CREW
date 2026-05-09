@@ -11,7 +11,7 @@ class Role(Base):
     __tablename__ = "roles"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True)  # CARETAKER, CLEANER, MAINTENANCE
+    name = Column(String, unique=True, index=True)  # CARETAKER, CLEANER, MAINTENANCE, ADMIN
     active = Column(Boolean, default=True)
     description = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

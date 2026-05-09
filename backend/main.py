@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Header
-from starlette.middleware.cors import CORSMiddleware
+from fastapi.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -161,6 +161,7 @@ def get_tasks(
     """Get all tasks for given shift and role"""
     
     tasks = db.query(Task).filter(
+        Task.shift_id == shift_id,
         Task.facility_id == facility_id,
         Task.assigned_role == current_staff.role_id
     ).all()
@@ -288,6 +289,18 @@ def submit_task_entry(
 
 
 # =====================
+# DEPENDENCY: Check if user is admin
+# =====================
+
+async def check_admin(current_staff: Staff = Depends(get_current_staff), db: Session = Depends(get_db)) -> Staff:
+    """Verify user has ADMIN role"""
+    admin_role = db.query(Role).filter(Role.name == "ADMIN").first()
+    if not admin_role or current_staff.role_id != admin_role.id:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_staff
+
+
+# =====================
 # DASHBOARD ENDPOINTS
 # =====================
 
@@ -295,24 +308,206 @@ def submit_task_entry(
 def get_daily_dashboard(
     facility_id: int,
     date: str,
-    current_staff: Staff = Depends(get_current_staff),
+    current_admin: Staff = Depends(check_admin),
     db: Session = Depends(get_db)
 ):
-    """Get daily dashboard metrics"""
-    # TODO: Implement full dashboard logic
-    return {"message": "Dashboard endpoint under construction"}
+    """Get daily dashboard metrics (admin only)"""
+    from datetime import datetime as dt
+    
+    try:
+        query_date = dt.strptime(date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    
+    # Get all shifts
+    shifts = db.query(Shift).filter(Shift.facility_id == facility_id).all()
+    
+    shifts_metrics = []
+    facility_completed = 0
+    facility_total = 0
+    facility_critical_missed = 0
+    
+    for shift in shifts:
+        # Get all staff who worked this shift today
+        task_entries = db.query(TaskEntry).filter(
+            TaskEntry.shift_id == shift.id,
+            TaskEntry.facility_id == facility_id,
+            TaskEntry.date == query_date
+        ).all()
+        
+        staff_on_duty = {}
+        for entry in task_entries:
+            if entry.staff_id not in staff_on_duty:
+                staff = db.query(Staff).filter(Staff.id == entry.staff_id).first()
+                role = db.query(Role).filter(Role.id == staff.role_id).first()
+                staff_on_duty[entry.staff_id] = {
+                    "staff_id": staff.id,
+                    "name": staff.name,
+                    "role": role.name,
+                    "completed": 0,
+                    "total": 0,
+                    "critical_missed": 0
+                }
+        
+        # Count tasks
+        for entry in task_entries:
+            staff_on_duty[entry.staff_id]["total"] += 1
+            if entry.status == "yes":
+                staff_on_duty[entry.staff_id]["completed"] += 1
+            if entry.status != "yes" and db.query(Task).filter(Task.id == entry.task_id).first().is_critical:
+                staff_on_duty[entry.staff_id]["critical_missed"] += 1
+            
+            facility_total += 1
+            if entry.status == "yes":
+                facility_completed += 1
+            if entry.status != "yes" and db.query(Task).filter(Task.id == entry.task_id).first().is_critical:
+                facility_critical_missed += 1
+        
+        # Build shift metrics
+        shift_staff = []
+        for staff_id, metrics in staff_on_duty.items():
+            completion_pct = (metrics["completed"] / metrics["total"] * 100) if metrics["total"] > 0 else 0
+            shift_staff.append({
+                "staff_id": metrics["staff_id"],
+                "name": metrics["name"],
+                "role": metrics["role"],
+                "tasks_completed": metrics["completed"],
+                "tasks_total": metrics["total"],
+                "completion_pct": round(completion_pct, 1),
+                "critical_missed": metrics["critical_missed"],
+                "carry_over_count": db.query(CarryOverQueue).filter(
+                    CarryOverQueue.shift_id == shift.id,
+                    CarryOverQueue.facility_id == facility_id,
+                    CarryOverQueue.resolved == False
+                ).count()
+            })
+        
+        shifts_metrics.append({
+            "shift_id": shift.id,
+            "shift_name": shift.name,
+            "staff_on_duty": shift_staff
+        })
+    
+    facility_completion_pct = (facility_completed / facility_total * 100) if facility_total > 0 else 0
+    
+    return {
+        "date": date,
+        "shifts": shifts_metrics,
+        "facility_totals": {
+            "tasks_completed": facility_completed,
+            "tasks_total": facility_total,
+            "completion_pct": round(facility_completion_pct, 1),
+            "critical_missed": facility_critical_missed
+        }
+    }
 
 
 @app.get("/dashboard/weekly")
 def get_weekly_dashboard(
     facility_id: int,
     week_start: str,
-    current_staff: Staff = Depends(get_current_staff),
+    current_admin: Staff = Depends(check_admin),
     db: Session = Depends(get_db)
 ):
-    """Get weekly dashboard metrics"""
-    # TODO: Implement full dashboard logic
-    return {"message": "Dashboard endpoint under construction"}
+    """Get weekly dashboard metrics (admin only)"""
+    from datetime import datetime as dt, timedelta
+    
+    try:
+        start_date = dt.strptime(week_start, "%Y-%m-%d").date()
+        end_date = start_date + timedelta(days=6)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    
+    # Get week's task entries
+    week_entries = db.query(TaskEntry).filter(
+        TaskEntry.facility_id == facility_id,
+        TaskEntry.date >= start_date,
+        TaskEntry.date <= end_date
+    ).all()
+    
+    # Aggregate by staff
+    staff_metrics = {}
+    for entry in week_entries:
+        if entry.staff_id not in staff_metrics:
+            staff = db.query(Staff).filter(Staff.id == entry.staff_id).first()
+            staff_metrics[entry.staff_id] = {
+                "staff_id": staff.id,
+                "name": staff.name,
+                "shifts_worked": 0,
+                "total_tasks": 0,
+                "completed_tasks": 0,
+                "critical_missed": 0,
+                "notes_written": 0
+            }
+        
+        staff_metrics[entry.staff_id]["total_tasks"] += 1
+        if entry.status == "yes":
+            staff_metrics[entry.staff_id]["completed_tasks"] += 1
+        if entry.status != "yes" and db.query(Task).filter(Task.id == entry.task_id).first().is_critical:
+            staff_metrics[entry.staff_id]["critical_missed"] += 1
+        if entry.notes:
+            staff_metrics[entry.staff_id]["notes_written"] += 1
+    
+    # Count unique shifts per staff
+    for staff_id in staff_metrics:
+        shifts_count = db.query(TaskEntry.shift_id).filter(
+            TaskEntry.staff_id == staff_id,
+            TaskEntry.facility_id == facility_id,
+            TaskEntry.date >= start_date,
+            TaskEntry.date <= end_date
+        ).distinct().count()
+        staff_metrics[staff_id]["shifts_worked"] = shifts_count
+    
+    # Build response
+    by_staff = []
+    for staff_id, metrics in staff_metrics.items():
+        completion_pct = (metrics["completed_tasks"] / metrics["total_tasks"] * 100) if metrics["total_tasks"] > 0 else 0
+        by_staff.append({
+            "staff_id": metrics["staff_id"],
+            "name": metrics["name"],
+            "shifts_worked": metrics["shifts_worked"],
+            "avg_completion_pct": round(completion_pct, 1),
+            "critical_missed": metrics["critical_missed"],
+            "notes_written": metrics["notes_written"]
+        })
+    
+    # Aggregate by role
+    role_metrics = {}
+    for entry in week_entries:
+        staff = db.query(Staff).filter(Staff.id == entry.staff_id).first()
+        role = db.query(Role).filter(Role.id == staff.role_id).first()
+        
+        if role.name not in role_metrics:
+            role_metrics[role.name] = {
+                "role": role.name,
+                "total_tasks": 0,
+                "completed_tasks": 0,
+                "critical_missed": 0,
+                "staff_count": set()
+            }
+        
+        role_metrics[role.name]["total_tasks"] += 1
+        if entry.status == "yes":
+            role_metrics[role.name]["completed_tasks"] += 1
+        if entry.status != "yes" and db.query(Task).filter(Task.id == entry.task_id).first().is_critical:
+            role_metrics[role.name]["critical_missed"] += 1
+        role_metrics[role.name]["staff_count"].add(entry.staff_id)
+    
+    by_role = []
+    for role_name, metrics in role_metrics.items():
+        completion_pct = (metrics["completed_tasks"] / metrics["total_tasks"] * 100) if metrics["total_tasks"] > 0 else 0
+        by_role.append({
+            "role": metrics["role"],
+            "avg_completion_pct": round(completion_pct, 1),
+            "critical_missed": metrics["critical_missed"],
+            "staff_count": len(metrics["staff_count"])
+        })
+    
+    return {
+        "week": f"{week_start} to {end_date.strftime('%Y-%m-%d')}",
+        "by_staff": by_staff,
+        "by_role": by_role
+    }
 
 
 # =====================

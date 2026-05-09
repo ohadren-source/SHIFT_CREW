@@ -25,6 +25,7 @@ def seed_database():
         {"name": "CARETAKER", "active": True, "description": "Household/facility caretaker"},
         {"name": "CLEANER", "active": False, "description": "Dedicated cleaning staff"},
         {"name": "MAINTENANCE", "active": False, "description": "Maintenance and repairs"},
+        {"name": "ADMIN", "active": True, "description": "Administrator - dashboard access"},
     ]
     
     roles = {}
