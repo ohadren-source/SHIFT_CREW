@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Header
-from fastapi.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
