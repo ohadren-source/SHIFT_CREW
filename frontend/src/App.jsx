@@ -17,7 +17,7 @@ function App() {
         console.log('Token found:', token.substring(0, 20) + '...')
         const payload = JSON.parse(atob(token.split('.')[1]))
         console.log('Token payload:', payload)
-        setCurrentStaff({ id: payload.sub })
+        setCurrentStaff({ id: payload.sub, name: 'Staff Member' })
         console.log('Current staff set to:', payload.sub)
       } catch (err) {
         console.error('Invalid token:', err)
