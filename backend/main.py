@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Header
-from starlette.middleware.cors import CORSMiddleware
+from fastapi.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -23,7 +23,12 @@ app = FastAPI(title="⏳_SHIFT_CREW", version="1.0.0")
 # CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://shift-crew.vercel.app",
+        "https://shift-crew-174auuepf-ohadren-7008s-projects.vercel.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
