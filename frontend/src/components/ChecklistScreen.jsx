@@ -27,7 +27,7 @@ export default function ChecklistScreen({ token, currentStaff, onLogout, apiUrl 
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()
-      setTasks(data || {})
+      setTasks(data.tasks || {})
       if (Object.keys(data.tasks || {}).length > 0) {
         setSelectedRoom(Object.keys(data.tasks)[0])
       }
