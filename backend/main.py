@@ -222,10 +222,7 @@ def get_tasks(
         CarryOverQueue.resolved == False
     ).count()
     
-    return {
-        "tasks": tasks_by_room,
-        "carry_over_count": carry_over_count
-    }
+    return tasks_by_room
 
 
 @app.get("/task-entries")
