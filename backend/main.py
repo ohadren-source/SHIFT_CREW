@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Header
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -33,6 +34,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# =====================
+# EXCEPTION HANDLERS
+# =====================
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    """Log detailed validation errors"""
+    import sys
+    print(f"VALIDATION ERROR: {exc.errors()}", file=sys.stderr)
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
 
 
 # =====================
