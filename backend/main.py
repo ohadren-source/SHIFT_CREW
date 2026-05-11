@@ -203,30 +203,18 @@ def get_tasks(
         TaskEntry.staff_id == current_staff.id,
         TaskEntry.facility_id == facility_id,
         TaskEntry.date == today,
-        TaskEntry.status == TaskStatus.YES
+        TaskEntry.status.in_(['yes'])
     ).all()
     completed_ids = {task_id[0] for task_id in completed_task_ids}
-    print(f"DEBUG: staff_id={current_staff.id}, facility_id={facility_id}, today={today}")
-    # Check all TaskEntry records for this staff today
-    all_entries_today = db.query(TaskEntry).filter(
-        TaskEntry.staff_id == current_staff.id,
-        TaskEntry.facility_id == facility_id,
-        TaskEntry.date == today
-    ).all()
-    print(f"DEBUG: All TaskEntry records today: {[(e.task_id, e.status) for e in all_entries_today]}")
-    print(f"DEBUG: completed_ids query result: {completed_task_ids}")
-    print(f"DEBUG: completed_ids set: {completed_ids}")
 
     tasks = db.query(Task).filter(
         Task.facility_id == facility_id
     ).all()
-    print(f"DEBUG: All tasks from DB for facility {facility_id}: {[t.id for t in tasks]}")
 
     # Group by room, excluding completed tasks
     tasks_by_room = {}
     for task in tasks:
         if task.id in completed_ids:
-            print(f"DEBUG: Filtering out task {task.id}")
             continue
         room = task.room
         if room not in tasks_by_room:
@@ -239,7 +227,6 @@ def get_tasks(
             "is_persistent": task.is_persistent,
             "status": None
         })
-    print(f"DEBUG: Returning {sum(len(v) for v in tasks_by_room.values())} tasks across {len(tasks_by_room)} rooms")
     
     # Count carry-overs for this shift
     carry_over_count = db.query(CarryOverQueue).filter(
