@@ -27,38 +27,9 @@ export default function ChecklistScreen({ token, currentStaff, onLogout, apiUrl 
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()
-      
-      // Fetch task entries for today to hydrate task states
-      const entriesRes = await fetch(`${apiUrl}/task-entries?shift_id=${selectedShift}&facility_id=1&date=${new Date().toISOString().split('T')[0]}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const entriesData = entriesRes.ok ? await entriesRes.json() : { entries: [] }
-      
-      // Create a map of task_id -> entry for quick lookup
-      const entryMap = {}
-      entriesData.entries?.forEach(entry => {
-        entryMap[entry.task_id] = entry
-      })
-      
-      // Hydrate tasks with their saved states and filter out completed ones
-      const hydratedTasks = {}
-      Object.entries(data).forEach(([room, roomTasks]) => {
-        hydratedTasks[room] = roomTasks
-          .map(task => {
-            const entry = entryMap[task.id]
-            return {
-              ...task,
-              status: entry?.status || null,
-              notes: entry?.notes || ''
-            }
-          })
-          .filter(task => task.status !== 'yes') // Hide completed tasks
-      })
-      
-      setTasks(hydratedTasks)
-      const roomKeys = Object.keys(hydratedTasks)
-      if (roomKeys.length > 0) {
-        setSelectedRoom(roomKeys[0])
+      setTasks(data || {})
+      if (Object.keys(data || {}).length > 0) {
+        setSelectedRoom(Object.keys(data)[0])
       }
     } catch (err) {
       setMessage('Failed to load tasks')
@@ -90,6 +61,7 @@ export default function ChecklistScreen({ token, currentStaff, onLogout, apiUrl 
             },
             body: JSON.stringify({
               task_id: task.id,
+              staff_id: currentStaff.id,
               shift_id: selectedShift,
               facility_id: 1,
               status: task.status,
