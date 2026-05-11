@@ -302,7 +302,7 @@ def submit_task_entry(
     """Submit a completed task"""
     
     # Validate notes: required if status is "not_done"
-    if request.status == TaskStatusEnum.NOT_DONE and not request.notes:
+    if request.status == TaskStatus.NOT_DONE and not request.notes:
         raise HTTPException(status_code=400, detail="Notes required when status is 'Not Done'")
     
     # Create task entry
@@ -322,7 +322,7 @@ def submit_task_entry(
     
     # If status is "not_done", create carry-over
     carry_over_id = None
-    if request.status == TaskStatusEnum.NOT_DONE:
+    if request.status == TaskStatus.NOT_DONE:
         # Find next occurrence of this shift (tomorrow, same shift type)
         next_shift_date = today + timedelta(days=1)
         
