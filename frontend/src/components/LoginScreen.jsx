@@ -28,6 +28,7 @@ export default function LoginScreen({ onLogin, apiUrl }) {
       }
 
       console.log('Login successful, token:', data.session_token)
+      localStorage.setItem('staff_id', data.id)
       onLogin(data.session_token, { id: data.id, email: data.email, name: data.name })
     } catch (err) {
       setError('Network error. Try again.')

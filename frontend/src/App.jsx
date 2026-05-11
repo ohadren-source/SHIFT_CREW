@@ -7,6 +7,7 @@ const API_URL = 'https://shiftcrew-production.up.railway.app'
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('session_token'))
+  const [staffId, setStaffId] = useState(localStorage.getItem('staff_id'))
   const [currentStaff, setCurrentStaff] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -36,15 +37,19 @@ function App() {
     console.log('handleLogin called with token:', loginToken.substring(0, 20) + '...')
     console.log('staffData:', staffData)
     localStorage.setItem('session_token', loginToken)
+    localStorage.setItem('staff_id', staffData.id)
     console.log('Token saved to localStorage')
     setToken(loginToken)
+    setStaffId(staffData.id)
     setCurrentStaff(staffData)
     console.log('State updated')
   }
 
   const handleLogout = () => {
     localStorage.removeItem('session_token')
+    localStorage.removeItem('staff_id')
     setToken(null)
+    setStaffId(null)
     setCurrentStaff(null)
   }
 
@@ -57,7 +62,7 @@ function App() {
       {!token ? (
         <LoginScreen onLogin={handleLogin} apiUrl={API_URL} />
       ) : (
-        <ChecklistScreen token={token} currentStaff={currentStaff} onLogout={handleLogout} apiUrl={API_URL} />
+        <ChecklistScreen token={token} staffId={staffId} currentStaff={currentStaff} onLogout={handleLogout} apiUrl={API_URL} />
       )}
     </div>
   )

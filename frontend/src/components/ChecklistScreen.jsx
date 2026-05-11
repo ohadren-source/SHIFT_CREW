@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import TaskCard from './TaskCard'
 
-export default function ChecklistScreen({ token, currentStaff, onLogout, apiUrl }) {
+export default function ChecklistScreen({ token, staffId, currentStaff, onLogout, apiUrl }) {
   const [tasks, setTasks] = useState({})
   const [loading, setLoading] = useState(true)
   const [selectedShift, setSelectedShift] = useState(1)
@@ -62,7 +62,7 @@ export default function ChecklistScreen({ token, currentStaff, onLogout, apiUrl 
             },
             body: JSON.stringify({
               task_id: task.id,
-              staff_id: currentStaff.id,
+              staff_id: staffId,
               shift_id: selectedShift,
               facility_id: 1,
               status: task.status,
