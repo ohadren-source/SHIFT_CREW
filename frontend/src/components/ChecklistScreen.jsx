@@ -11,10 +11,10 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
   const [message, setMessage] = useState('')
 
   const shifts = [
-    { id: 1, name: '1st Shift (AM)', time: '6:00 - 14:00' },
-    { id: 2, name: '2nd Shift (Midday)', time: '14:00 - 22:00' },
-    { id: 3, name: '3rd Shift (PM)', time: '22:00 - 06:00' },
-    { id: 4, name: 'Weekend Shift', time: '6:00 - 22:00' }
+    { id: 1, name: '1st Shift (AM)', time: '6:00 AM - 2:00 PM' },
+    { id: 2, name: '2nd Shift (Midday)', time: '2:00 PM - 10:00 PM' },
+    { id: 3, name: '3rd Shift (PM)', time: '10:00 PM - 6:00 AM' },
+    { id: 4, name: 'Weekend Shift', time: '6:00 AM - 10:00 PM' }
   ]
 
   useEffect(() => {

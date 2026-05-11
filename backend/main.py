@@ -198,12 +198,12 @@ def get_tasks(
 
     today = datetime.utcnow().date()
 
-    # Get tasks completed today by this staff (status='yes' or 'no', not 'not_done')
+    # Get tasks marked 'yes' today by this staff (only yes disappears, no/carry-over stay)
     completed_task_ids = db.query(TaskEntry.task_id).filter(
         TaskEntry.staff_id == current_staff.id,
         TaskEntry.facility_id == facility_id,
         TaskEntry.date == today,
-        TaskEntry.status.in_(['yes', 'no'])
+        TaskEntry.status == 'yes'
     ).all()
     completed_ids = {task_id[0] for task_id in completed_task_ids}
     print(f"DEBUG: staff_id={current_staff.id}, facility_id={facility_id}, today={today}")
