@@ -207,6 +207,13 @@ def get_tasks(
     ).all()
     completed_ids = {task_id[0] for task_id in completed_task_ids}
     print(f"DEBUG: staff_id={current_staff.id}, facility_id={facility_id}, today={today}")
+    # Check all TaskEntry records for this staff today
+    all_entries_today = db.query(TaskEntry).filter(
+        TaskEntry.staff_id == current_staff.id,
+        TaskEntry.facility_id == facility_id,
+        TaskEntry.date == today
+    ).all()
+    print(f"DEBUG: All TaskEntry records today: {[(e.task_id, e.status) for e in all_entries_today]}")
     print(f"DEBUG: completed_ids query result: {completed_task_ids}")
     print(f"DEBUG: completed_ids set: {completed_ids}")
 
