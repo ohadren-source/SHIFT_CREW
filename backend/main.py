@@ -194,15 +194,28 @@ def get_tasks(
     current_staff: Staff = Depends(get_current_staff),
     db: Session = Depends(get_db)
 ):
-    """Get all tasks for given shift and role"""
-    
+    """Get all tasks for given shift and role, excluding completed tasks from today"""
+
+    today = datetime.utcnow().date()
+
+    # Get tasks completed today by this staff (status='yes' or 'no', not 'not_done')
+    completed_task_ids = db.query(TaskEntry.task_id).filter(
+        TaskEntry.staff_id == current_staff.id,
+        TaskEntry.facility_id == facility_id,
+        TaskEntry.date == today,
+        TaskEntry.status != TaskStatus.NOT_DONE
+    ).all()
+    completed_ids = {task_id[0] for task_id in completed_task_ids}
+
     tasks = db.query(Task).filter(
         Task.facility_id == facility_id
     ).all()
-    
-    # Group by room
+
+    # Group by room, excluding completed tasks
     tasks_by_room = {}
     for task in tasks:
+        if task.id in completed_ids:
+            continue
         room = task.room
         if room not in tasks_by_room:
             tasks_by_room[room] = []
