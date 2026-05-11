@@ -166,7 +166,8 @@ def get_tasks(
     """Get all tasks for given shift and role"""
     
     tasks = db.query(Task).filter(
-        Task.facility_id == facility_id
+        Task.facility_id == facility_id,
+        Task.assigned_role == current_staff.role_id
     ).all()
     
     # Group by room
@@ -194,6 +195,36 @@ def get_tasks(
     return {
         "tasks": tasks_by_room,
         "carry_over_count": carry_over_count
+    }
+
+
+@app.get("/task-entries")
+def get_task_entries(
+    shift_id: int,
+    facility_id: int,
+    date: str,
+    current_staff: Staff = Depends(get_current_staff),
+    db: Session = Depends(get_db)
+):
+    """Get task entries for a specific shift and date"""
+    
+    entries = db.query(TaskEntry).filter(
+        TaskEntry.shift_id == shift_id,
+        TaskEntry.facility_id == facility_id,
+        TaskEntry.date == date
+    ).all()
+    
+    return {
+        "entries": [
+            {
+                "id": entry.id,
+                "task_id": entry.task_id,
+                "status": entry.status,
+                "notes": entry.notes,
+                "timestamp": entry.timestamp.isoformat() if entry.timestamp else None
+            }
+            for entry in entries
+        ]
     }
 
 
