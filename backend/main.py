@@ -159,12 +159,27 @@ def signin(request: SignInRequest, db: Session = Depends(get_db)):
     )
 
 
+@app.get("/auth/me", response_model=AuthResponse)
+def get_current_user(current_staff: Staff = Depends(get_current_staff)):
+    """Get current authenticated staff member"""
+    expires_at = datetime.utcnow() + timedelta(hours=12)
+    return AuthResponse(
+        id=current_staff.id,
+        email=current_staff.email,
+        name=current_staff.name,
+        role_id=current_staff.role_id,
+        facility_id=current_staff.facility_id,
+        session_token="",
+        expires_at=expires_at
+    )
+
+
 @app.post("/auth/google-callback", response_model=AuthResponse)
 def google_auth(request: GoogleAuthRequest, db: Session = Depends(get_db)):
     """Authenticate with Google OAuth token"""
     # TODO: Implement Google OAuth token verification
     # For now, accept google_token and return mock response
-    
+
     raise HTTPException(status_code=501, detail="Google OAuth not yet implemented")
 
 

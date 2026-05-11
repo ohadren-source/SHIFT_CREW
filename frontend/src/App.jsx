@@ -13,20 +13,24 @@ function App() {
 
   useEffect(() => {
     if (token) {
-      try {
-        console.log('Token found:', token.substring(0, 20) + '...')
-        const payload = JSON.parse(atob(token.split('.')[1]))
-        console.log('Token payload:', payload)
-        if (payload.sub) {
-          setCurrentStaff(prev => prev ? prev : { id: payload.sub, name: 'Staff Member' })
-          console.log('Current staff set to:', payload.sub)
-        }
-      } catch (err) {
-        console.error('Invalid token:', err)
-        localStorage.removeItem('session_token')
-        setToken(null)
-      }
-      setLoading(false)
+      console.log('Token found:', token.substring(0, 20) + '...')
+      fetch(`${API_URL}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('Current user:', data)
+          setStaffId(data.id)
+          setCurrentStaff({ id: data.id, email: data.email, name: data.name })
+        })
+        .catch(err => {
+          console.error('Failed to fetch current user:', err)
+          localStorage.removeItem('session_token')
+          localStorage.removeItem('staff_id')
+          setToken(null)
+          setStaffId(null)
+        })
+        .finally(() => setLoading(false))
     } else {
       console.log('No token found')
       setLoading(false)
