@@ -220,6 +220,7 @@ def get_tasks(
     tasks = db.query(Task).filter(
         Task.facility_id == facility_id
     ).all()
+    print(f"DEBUG: All tasks from DB for facility {facility_id}: {[t.id for t in tasks]}")
 
     # Group by room, excluding completed tasks
     tasks_by_room = {}
