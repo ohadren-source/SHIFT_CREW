@@ -203,7 +203,7 @@ def get_tasks(
         TaskEntry.staff_id == current_staff.id,
         TaskEntry.facility_id == facility_id,
         TaskEntry.date == today,
-        TaskEntry.status.in_(['yes'])
+        TaskEntry.status.in_([TaskStatus.YES])
     ).all()
     completed_ids = {task_id[0] for task_id in completed_task_ids}
 
