@@ -237,6 +237,9 @@ def get_tasks(
         CarryOverQueue.resolved == False
     ).count()
     
+    print(f"READ: Returning tasks_by_room with keys: {list(tasks_by_room.keys())}")
+    for room, tasks_list in tasks_by_room.items():
+        print(f"READ:   {room}: task_ids={[t['id'] for t in tasks_list]}")
     return tasks_by_room
 
 
