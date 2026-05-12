@@ -74,8 +74,28 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
       setMessage('Tasks submitted successfully!')
       setTimeout(() => setMessage(''), 3000)
 
-      // Refetch to ensure state matches backend
       await fetchTasks()
+
+      // Fetch task entries to restore status
+      const today = new Date().toISOString().split('T')[0]
+      const entriesRes = await fetch(`${apiUrl}/task-entries?shift_id=${selectedShift}&facility_id=1&date=${today}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const { entries } = await entriesRes.json()
+
+      // Map entries by task_id for quick lookup
+      const statusMap = {}
+      entries.forEach(e => { statusMap[e.task_id] = e })
+
+      // Restore status from entries, exclude YES tasks
+      setTasks(prev => ({
+        ...prev,
+        [selectedRoom]: (prev[selectedRoom] || []).filter(task => statusMap[task.id]?.status !== 'yes').map(task => ({
+          ...task,
+          status: statusMap[task.id]?.status,
+          notes: statusMap[task.id]?.notes
+        }))
+      }))
     } catch (err) {
       setMessage('Error submitting tasks')
     }
