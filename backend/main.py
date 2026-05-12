@@ -615,9 +615,10 @@ async def http_exception_handler(request, exc):
 
 
 # Mount frontend dist folder
-dist_path = Path(__file__).parent.parent / "frontend" / "dist"
-if dist_path.exists():
-    app.mount("/", StaticFiles(directory=str(dist_path), html=True), name="static")
+import os
+dist_path = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+if os.path.exists(dist_path):
+    app.mount("/", StaticFiles(directory=dist_path, html=True), name="static")
 
 
 if __name__ == "__main__":
