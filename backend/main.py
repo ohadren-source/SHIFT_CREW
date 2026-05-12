@@ -2,6 +2,8 @@ from fastapi import FastAPI, Depends, HTTPException, status, Header
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
@@ -610,6 +612,12 @@ async def http_exception_handler(request, exc):
             "details": None
         },
     )
+
+
+# Mount frontend dist folder
+dist_path = Path(__file__).parent.parent / "frontend" / "dist"
+if dist_path.exists():
+    app.mount("/", StaticFiles(directory=str(dist_path), html=True), name="static")
 
 
 if __name__ == "__main__":
