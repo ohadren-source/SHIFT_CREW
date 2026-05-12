@@ -73,12 +73,9 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
       }
       setMessage('Tasks submitted successfully!')
       setTimeout(() => setMessage(''), 3000)
-      
-      // Remove Yes tasks from view, keep No/Defer
-      setTasks(prev => ({
-        ...prev,
-        [selectedRoom]: prev[selectedRoom].filter(task => task.status !== 'yes')
-      }))
+
+      // Refetch to ensure state matches backend
+      await fetchTasks()
     } catch (err) {
       setMessage('Error submitting tasks')
     }

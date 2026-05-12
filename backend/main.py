@@ -206,8 +206,6 @@ def get_tasks(
         TaskEntry.status.in_([TaskStatus.YES])
     ).all()
     completed_ids = {task_id[0] for task_id in completed_task_ids}
-    print(f"READ: Looking for tasks with status=YES for staff={current_staff.id}, facility={facility_id}, date={today}")
-    print(f"READ: Found completed_ids={completed_ids}")
 
     tasks = db.query(Task).filter(
         Task.facility_id == facility_id
@@ -325,7 +323,6 @@ def submit_task_entry(
     
     # Create task entry
     today = datetime.utcnow().date()
-    print(f"WRITE: Creating TaskEntry - task_id={request.task_id}, staff_id={request.staff_id}, status={request.status}, date={today}")
     task_entry = TaskEntry(
         task_id=request.task_id,
         staff_id=request.staff_id,
@@ -338,7 +335,6 @@ def submit_task_entry(
     )
     db.add(task_entry)
     db.flush()  # Get the ID without committing
-    print(f"WRITE: TaskEntry flushed with id={task_entry.id}")
     
     # If status is "not_done", create carry-over
     carry_over_id = None
@@ -359,7 +355,6 @@ def submit_task_entry(
         carry_over_id = carry_over.id
     
     db.commit()
-    print(f"WRITE: TaskEntry committed to database with id={task_entry.id}")
     db.refresh(task_entry)
 
     response = TaskEntryResponse.from_orm(task_entry)
