@@ -1,8 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function TaskCard({ task, onChange }) {
-  const [notes, setNotes] = useState('')
+  const [notes, setNotes] = useState(task.notes || '')
   const [showNotes, setShowNotes] = useState(false)
+
+  useEffect(() => {
+    setNotes(task.notes || '')
+  }, [task.notes])
 
   const handleStatusChange = (status) => {
     onChange(task.id, status, notes)

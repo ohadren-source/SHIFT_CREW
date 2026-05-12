@@ -3,7 +3,7 @@ import LoginScreen from './components/LoginScreen'
 import ChecklistScreen from './components/ChecklistScreen'
 import './App.css'
 
-const API_URL = 'https://shiftcrew-production.up.railway.app'
+const API_URL = 'http://localhost:8000'
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('session_token'))

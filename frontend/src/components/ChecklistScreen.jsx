@@ -28,9 +28,29 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()
-      setTasks(data || {})
-      if (Object.keys(data || {}).length > 0) {
-        setSelectedRoom(Object.keys(data)[0])
+
+      // Fetch entries to restore status
+      const today = new Date().toISOString().split('T')[0]
+      const entriesRes = await fetch(`${apiUrl}/task-entries?shift_id=${selectedShift}&facility_id=1&date=${today}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const { entries } = await entriesRes.json()
+      const statusMap = {}
+      entries.forEach(e => { statusMap[e.task_id] = e })
+
+      // Restore status and notes to tasks
+      const tasksWithStatus = {}
+      Object.keys(data || {}).forEach(room => {
+        tasksWithStatus[room] = (data[room] || []).map(task => ({
+          ...task,
+          status: statusMap[task.id]?.status,
+          notes: statusMap[task.id]?.notes
+        }))
+      })
+
+      setTasks(tasksWithStatus)
+      if (Object.keys(tasksWithStatus).length > 0) {
+        setSelectedRoom(Object.keys(tasksWithStatus)[0])
       }
     } catch (err) {
       setMessage('Failed to load tasks')
@@ -81,11 +101,14 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
       const entriesRes = await fetch(`${apiUrl}/task-entries?shift_id=${selectedShift}&facility_id=1&date=${today}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
-      const { entries } = await entriesRes.json()
+      const entriesData = await entriesRes.json()
+      console.log('Entries response:', entriesData)
+      const { entries } = entriesData
 
       // Map entries by task_id for quick lookup
       const statusMap = {}
       entries.forEach(e => { statusMap[e.task_id] = e })
+      console.log('Status map:', statusMap)
 
       // Restore status from entries, exclude YES tasks
       setTasks(prev => ({

@@ -27,6 +27,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:5173",
+        "http://localhost:5174",
         "https://shift-crew.vercel.app",
         "https://shift-crew-174auuepf-ohadren-7008s-projects.vercel.app"
     ],
