@@ -6,14 +6,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get DATABASE_URL from environment variable
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/shift_crew")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./shift_crew.db")
 
 # Create engine
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,  # Verify connections before using them
-    echo=False  # Set to True for SQL debugging
-)
+if "sqlite" in DATABASE_URL:
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False}, echo=False)
+else:
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True, echo=False)
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

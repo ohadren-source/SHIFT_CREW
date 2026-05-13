@@ -22,6 +22,13 @@ class RegisterRequest(BaseModel):
     facility_id: int
 
 
+class AdminCreateStaffRequest(BaseModel):
+    email: EmailStr
+    name: str
+    role_id: int
+    facility_id: int
+
+
 class SignInRequest(BaseModel):
     email: EmailStr
     password: str
@@ -37,6 +44,7 @@ class AuthResponse(BaseModel):
     name: Optional[str]
     role_id: int
     facility_id: int
+    first_login: bool
     session_token: str
     expires_at: datetime
 

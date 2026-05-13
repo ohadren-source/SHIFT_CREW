@@ -67,6 +67,7 @@ class Staff(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
+    first_login = Column(Boolean, default=True)
 
     # Relationships
     role = relationship("Role", back_populates="staff")
