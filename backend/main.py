@@ -265,10 +265,9 @@ def get_tasks(
 
     carry_over_task_ids = {co.task_id for co in carry_over_tasks}
 
-    # Get all base tasks for facility (1st shift tasks always included in all shifts)
+    # Get all base tasks for facility
     tasks = db.query(Task).filter(
-        Task.facility_id == facility_id,
-        or_(Task.default_shift == 1, Task.default_shift == shift_id, Task.default_shift.is_(None))
+        Task.facility_id == facility_id
     ).all()
 
     # Create task lookup by ID
