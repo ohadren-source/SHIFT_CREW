@@ -76,7 +76,7 @@ function App() {
     return <div className="flex items-center justify-center h-screen bg-gray-900 text-white">Loading...</div>
   }
 
-  const isAdmin = roleId === 1
+  const isAdmin = currentStaff?.email === 'amb@grscorp.us'
 
   return (
     <div className="bg-gray-900 min-h-screen text-white">
