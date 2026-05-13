@@ -273,14 +273,7 @@ def get_tasks(
     # Create task lookup by ID
     task_lookup = {t.id: t for t in tasks}
 
-    # Get today's task entries to restore status (YES tasks remain visible)
-    today_entries = db.query(TaskEntry).filter(
-        TaskEntry.facility_id == facility_id,
-        TaskEntry.date == today
-    ).all()
-    status_map = {e.task_id: e.status for e in today_entries}
-
-    # Group by room (keep all tasks including YES)
+    # Group by room (return all tasks)
     tasks_by_room = {}
     for task in tasks:
         room = task.room
@@ -293,7 +286,7 @@ def get_tasks(
             "is_critical": task.is_critical,
             "is_persistent": task.is_persistent,
             "is_carry_over": task.id in carry_over_task_ids,
-            "status": status_map.get(task.id)
+            "status": None
         })
 
     # Add carry-over tasks that aren't in base tasks
@@ -301,8 +294,6 @@ def get_tasks(
         if co_task_id not in task_lookup:
             continue  # Task doesn't exist
         task = task_lookup[co_task_id]
-        if task.id in completed_ids:
-            continue  # Already completed
 
         room = task.room
         if room not in tasks_by_room:
