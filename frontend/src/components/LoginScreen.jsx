@@ -80,10 +80,6 @@ export default function LoginScreen({ onLogin, apiUrl }) {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
-        <p className="text-center text-gray-400 text-sm mt-6">
-          Test: admin@example.com / adminpass123
-        </p>
       </div>
     </div>
   )
