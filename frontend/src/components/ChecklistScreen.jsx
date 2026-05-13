@@ -3,19 +3,40 @@ import { useState, useEffect } from 'react'
 import TaskCard from './TaskCard'
 
 export default function ChecklistScreen({ token, staffId, currentStaff, onLogout, apiUrl }) {
-  const [tasks, setTasks] = useState({})
-  const [loading, setLoading] = useState(true)
-  const [selectedShift, setSelectedShift] = useState(1)
-  const [selectedRoom, setSelectedRoom] = useState(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [message, setMessage] = useState('')
-
   const shifts = [
     { id: 1, name: '1st Shift (AM)', time: '6:00 AM - 2:00 PM' },
     { id: 2, name: '2nd Shift (Midday)', time: '2:00 PM - 10:00 PM' },
     { id: 3, name: '3rd Shift (PM)', time: '10:00 PM - 6:00 AM' },
     { id: 4, name: 'Weekend Shift', time: '6:00 AM - 10:00 PM' }
   ]
+
+  const allRooms = [
+    "Azlan's Room",
+    "Azlan's Bathroom",
+    "Asad's Room",
+    "Asad's Bathroom",
+    "Study Room",
+    "Kitchen",
+    "Dining Area",
+    "Sitting Area",
+    "Hallways",
+    "Downstairs Bathroom",
+    "Stairs",
+    "Office",
+    "Pets",
+    "Laundry",
+    "Final Checks"
+  ]
+
+  const [tasks, setTasks] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [selectedShift, setSelectedShift] = useState(1)
+  const [selectedRoom, setSelectedRoom] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState('')
+  const [rooms, setRooms] = useState(allRooms)
+  const [addingRoom, setAddingRoom] = useState(false)
+  const [newRoomName, setNewRoomName] = useState('')
 
   useEffect(() => {
     fetchTasks()
@@ -67,10 +88,31 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
     }))
   }
 
+  const handleAddRoom = () => {
+    if (newRoomName.trim() && !rooms.includes(newRoomName.trim())) {
+      const trimmedName = newRoomName.trim()
+      setRooms([...rooms, trimmedName].sort())
+      setSelectedRoom(trimmedName)
+      setNewRoomName('')
+      setAddingRoom(false)
+      setMessage(`Room "${trimmedName}" added!`)
+      setTimeout(() => setMessage(''), 2000)
+    }
+  }
+
   const handleSubmitTasks = async () => {
-    setSubmitting(true)
     const roomTasks = tasks[selectedRoom] || []
-    
+
+    // Validate: notes required for "not_done" status
+    for (const task of roomTasks) {
+      if (task.status === 'not_done' && !task.notes?.trim()) {
+        setMessage('Notes are required for tasks marked "Carry Over"')
+        return
+      }
+    }
+
+    setSubmitting(true)
+
     try {
       for (const task of roomTasks) {
         if (task.status) {
@@ -110,10 +152,10 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
       entries.forEach(e => { statusMap[e.task_id] = e })
       console.log('Status map:', statusMap)
 
-      // Restore status from entries, exclude YES tasks
+      // Restore status from entries (keep all tasks including YES)
       setTasks(prev => ({
         ...prev,
-        [selectedRoom]: (prev[selectedRoom] || []).filter(task => statusMap[task.id]?.status !== 'yes').map(task => ({
+        [selectedRoom]: (prev[selectedRoom] || []).map(task => ({
           ...task,
           status: statusMap[task.id]?.status,
           notes: statusMap[task.id]?.notes
@@ -149,21 +191,19 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
         </div>
 
         {/* Shift Selector */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          {shifts.map(shift => (
-            <button
-              key={shift.id}
-              onClick={() => setSelectedShift(shift.id)}
-              className={`p-4 rounded-lg border-2 transition ${
-                selectedShift === shift.id
-                  ? 'border-teal-400 bg-teal-900 text-teal-100'
-                  : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
-              }`}
-            >
-              <div className="font-bold">{shift.name}</div>
-              <div className="text-sm">{shift.time}</div>
-            </button>
-          ))}
+        <div className="mb-8">
+          <label className="block text-sm font-medium text-gray-300 mb-2">Select Shift</label>
+          <select
+            value={selectedShift}
+            onChange={(e) => setSelectedShift(parseInt(e.target.value))}
+            className="w-full px-4 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-teal-400 focus:outline-none"
+          >
+            {shifts.map(shift => (
+              <option key={shift.id} value={shift.id}>
+                {shift.name} ({shift.time})
+              </option>
+            ))}
+          </select>
         </div>
 
         {message && (
@@ -172,31 +212,60 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-6">
-          {/* Room Navigation */}
-          <div className="col-span-1">
-            <div className="bg-gray-800 rounded-lg p-4 sticky top-6">
-              <h2 className="font-bold text-lg text-teal-400 mb-4">Rooms & Areas</h2>
-              <div className="space-y-2">
-                {roomList.map(room => (
-                  <button
-                    key={room}
-                    onClick={() => setSelectedRoom(room)}
-                    className={`w-full text-left px-4 py-2 rounded transition ${
-                      selectedRoom === room
-                        ? 'bg-teal-600 text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    {room}
-                  </button>
-                ))}
-              </div>
+        {/* Room Selector */}
+        <div className="mb-8">
+          <label className="block text-sm font-medium text-gray-300 mb-2">Select Room/Area</label>
+          {addingRoom ? (
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                value={newRoomName}
+                onChange={(e) => setNewRoomName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddRoom()}
+                placeholder="Enter new room name..."
+                autoFocus
+                className="flex-1 px-4 py-2 bg-gray-700 text-white rounded border border-teal-400 focus:outline-none"
+              />
+              <button
+                onClick={handleAddRoom}
+                className="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded transition"
+              >
+                Add
+              </button>
+              <button
+                onClick={() => {
+                  setAddingRoom(false)
+                  setNewRoomName('')
+                }}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition"
+              >
+                Cancel
+              </button>
             </div>
-          </div>
+          ) : null}
+          <select
+            value={selectedRoom || ''}
+            onChange={(e) => {
+              if (e.target.value === '__add_new__') {
+                setAddingRoom(true)
+              } else {
+                setSelectedRoom(e.target.value)
+              }
+            }}
+            className="w-full px-4 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-teal-400 focus:outline-none"
+          >
+            <option value="">Choose a room...</option>
+            {rooms.map(room => (
+              <option key={room} value={room}>
+                {room}
+              </option>
+            ))}
+            <option value="__add_new__" className="bg-teal-600">+ Add New Room</option>
+          </select>
+        </div>
 
+        <div>
           {/* Tasks */}
-          <div className="col-span-2">
             {loading ? (
               <div className="text-gray-400">Loading tasks...</div>
             ) : selectedRoom && tasks[selectedRoom] ? (
@@ -221,7 +290,6 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
             ) : (
               <div className="text-gray-400">Select a room to view tasks</div>
             )}
-          </div>
         </div>
       </div>
     </div>

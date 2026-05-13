@@ -256,15 +256,6 @@ def get_tasks(
 
     today = datetime.utcnow().date()
 
-    # Get tasks marked 'yes' today by this staff (only yes disappears, no/carry-over stay)
-    completed_task_ids = db.query(TaskEntry.task_id).filter(
-        TaskEntry.staff_id == current_staff.id,
-        TaskEntry.facility_id == facility_id,
-        TaskEntry.date == today,
-        TaskEntry.status.in_([TaskStatus.YES])
-    ).all()
-    completed_ids = {task_id[0] for task_id in completed_task_ids}
-
     # Get ALL unresolved carry-over tasks (perpetual until marked complete)
     carry_over_tasks = db.query(CarryOverQueue).filter(
         CarryOverQueue.facility_id == facility_id,
@@ -282,11 +273,16 @@ def get_tasks(
     # Create task lookup by ID
     task_lookup = {t.id: t for t in tasks}
 
-    # Group by room, excluding completed tasks
+    # Get today's task entries to restore status (YES tasks remain visible)
+    today_entries = db.query(TaskEntry).filter(
+        TaskEntry.facility_id == facility_id,
+        TaskEntry.date == today
+    ).all()
+    status_map = {e.task_id: e.status for e in today_entries}
+
+    # Group by room (keep all tasks including YES)
     tasks_by_room = {}
     for task in tasks:
-        if task.id in completed_ids:
-            continue
         room = task.room
         if room not in tasks_by_room:
             tasks_by_room[room] = []
@@ -297,7 +293,7 @@ def get_tasks(
             "is_critical": task.is_critical,
             "is_persistent": task.is_persistent,
             "is_carry_over": task.id in carry_over_task_ids,
-            "status": None
+            "status": status_map.get(task.id)
         })
 
     # Add carry-over tasks that aren't in base tasks
