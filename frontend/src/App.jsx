@@ -89,8 +89,6 @@ function App() {
     <div className="bg-gray-900 min-h-screen text-white">
       {!token ? (
         <LoginScreen onLogin={handleLogin} apiUrl={API_URL} />
-      ) : firstLogin ? (
-        <ChangePasswordScreen user={currentStaff} onPasswordChanged={handlePasswordChanged} apiUrl={API_URL} />
       ) : (
         <>
           {isAdmin && (
