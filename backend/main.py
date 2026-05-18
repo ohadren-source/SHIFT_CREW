@@ -4,8 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
+import pytz
 
 from database import get_db, engine
 from models import Base, Staff, Role, Facility, Shift, Task, TaskEntry, CarryOverQueue, TaskStatus
@@ -18,6 +19,17 @@ from schemas import (
 
 # Create tables
 Base.metadata.create_all(bind=engine)
+
+# EST timezone helper
+EST = pytz.timezone('US/Eastern')
+
+def get_est_now():
+    """Get current time in Eastern Standard Time"""
+    return datetime.now(EST)
+
+def get_est_today():
+    """Get today's date in Eastern Standard Time"""
+    return get_est_now().date()
 
 # Initialize admin on startup
 def init_admin():
@@ -179,7 +191,7 @@ def signin(request: SignInRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     # Update last login
-    staff.last_login = datetime.utcnow()
+    staff.last_login = get_est_now()
     db.commit()
 
     # Generate token
@@ -255,7 +267,7 @@ def get_tasks(
 ):
     """Get all tasks for given shift, excluding completed YES tasks from today. Include carry-over tasks."""
 
-    today = datetime.utcnow().date()
+    today = get_est_today()
 
     # Get ALL unresolved carry-over tasks (perpetual until marked complete)
     carry_over_tasks = db.query(CarryOverQueue).filter(
@@ -398,8 +410,8 @@ def submit_task_entry(
     if request.status == TaskStatus.NOT_DONE and not request.notes:
         raise HTTPException(status_code=400, detail="Notes required when status is 'Not Done'")
 
-    # Create task entry
-    today = datetime.utcnow().date()
+    # Create task entry (use EST)
+    today = get_est_today()
     task_entry = TaskEntry(
         task_id=request.task_id,
         staff_id=request.staff_id,

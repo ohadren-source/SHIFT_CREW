@@ -70,8 +70,12 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
       })
 
       setTasks(tasksWithStatus)
-      if (Object.keys(tasksWithStatus).length > 0) {
-        setSelectedRoom(Object.keys(tasksWithStatus)[0])
+      // Update rooms list to include all rooms from API response
+      const apiRooms = Object.keys(tasksWithStatus)
+      const allRoomsList = [...new Set([...allRooms, ...apiRooms])].sort()
+      setRooms(allRoomsList)
+      if (apiRooms.length > 0) {
+        setSelectedRoom(apiRooms[0])
       }
     } catch (err) {
       setMessage('Failed to load tasks')
