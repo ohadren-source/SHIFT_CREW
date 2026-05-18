@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import TaskCard from './TaskCard'
 
-export default function ChecklistScreen({ token, staffId, currentStaff, onLogout, apiUrl }) {
+export default function ChecklistScreen({ token, staffId, currentStaff, onLogout, apiUrl, lockedShift }) {
   const shifts = [
     { id: 1, name: '1st Shift (AM)', time: '6:00 AM - 2:00 PM' },
     { id: 2, name: '2nd Shift (Midday)', time: '2:00 PM - 10:00 PM' },
@@ -30,7 +30,7 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
 
   const [tasks, setTasks] = useState({})
   const [loading, setLoading] = useState(true)
-  const [selectedShift, setSelectedShift] = useState(1)
+  const [selectedShift, setSelectedShift] = useState(lockedShift || 1)
   const [selectedRoom, setSelectedRoom] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState('')
@@ -195,8 +195,9 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
           <label className="block text-sm font-medium text-gray-300 mb-2">Select Shift</label>
           <select
             value={selectedShift}
-            onChange={(e) => setSelectedShift(parseInt(e.target.value))}
-            className="w-full px-4 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-teal-400 focus:outline-none"
+            onChange={(e) => lockedShift ? null : setSelectedShift(parseInt(e.target.value))}
+            disabled={!!lockedShift}
+            className="w-full px-4 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-teal-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {shifts.map(shift => (
               <option key={shift.id} value={shift.id}>
@@ -204,6 +205,7 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
               </option>
             ))}
           </select>
+          {lockedShift && <p className="text-xs text-gray-400 mt-2">Your shift is locked to your login selection</p>}
         </div>
 
         {message && (

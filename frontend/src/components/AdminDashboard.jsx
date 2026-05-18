@@ -17,6 +17,25 @@ export default function AdminDashboard({ user, apiUrl, sessionToken }) {
   const [taskName, setTaskName] = useState('')
   const [taskRoleId, setTaskRoleId] = useState('')
   const [taskIsCritical, setTaskIsCritical] = useState(false)
+  const [taskIsPersistent, setTaskIsPersistent] = useState(false)
+
+  const defaultRooms = [
+    "Azlan's Room",
+    "Azlan's Bathroom",
+    "Asad's Room",
+    "Asad's Bathroom",
+    "Study Room",
+    "Kitchen",
+    "Dining Area",
+    "Sitting Area",
+    "Hallways",
+    "Downstairs Bathroom",
+    "Stairs",
+    "Office",
+    "Pets",
+    "Laundry",
+    "Final Checks"
+  ]
 
   // Fetch roles and facilities on mount
   useEffect(() => {
@@ -152,7 +171,7 @@ export default function AdminDashboard({ user, apiUrl, sessionToken }) {
     setSuccess('')
 
     try {
-      const res = await fetch(`${apiUrl}/admin/tasks?facility_id=${facilityId}&room=${encodeURIComponent(taskRoom)}&task_name=${encodeURIComponent(taskName)}&assigned_role=${taskRoleId}&is_critical=${taskIsCritical}`, {
+      const res = await fetch(`${apiUrl}/admin/tasks?facility_id=${facilityId}&room=${encodeURIComponent(taskRoom)}&task_name=${encodeURIComponent(taskName)}&assigned_role=${taskRoleId}&is_critical=${taskIsCritical}&is_persistent=${taskIsPersistent}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${sessionToken}` }
       })
@@ -168,6 +187,7 @@ export default function AdminDashboard({ user, apiUrl, sessionToken }) {
       setTaskName('')
       setTaskRoleId('')
       setTaskIsCritical(false)
+      setTaskIsPersistent(false)
       fetchTasks()
     } catch (err) {
       setError('Network error. Try again.')
@@ -352,7 +372,7 @@ export default function AdminDashboard({ user, apiUrl, sessionToken }) {
                   disabled={!facilityId}
                 >
                   <option value="">Select room...</option>
-                  {[...new Set(tasks.map(t => t.room))].sort().map((room) => (
+                  {[...new Set([...defaultRooms, ...tasks.map(t => t.room)])].sort().map((room) => (
                     <option key={room} value={room}>
                       {room}
                     </option>
@@ -402,6 +422,17 @@ export default function AdminDashboard({ user, apiUrl, sessionToken }) {
                 <label htmlFor="critical" className="text-sm text-gray-300">Mark as critical</label>
               </div>
 
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="persistent"
+                  checked={taskIsPersistent}
+                  onChange={(e) => setTaskIsPersistent(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="persistent" className="text-sm text-gray-300">Mark as persistent (pet care, daily must-dos)</label>
+              </div>
+
               {error && <div className="p-3 bg-red-900 text-red-200 rounded text-sm">{error}</div>}
               {success && <div className="p-3 bg-green-900 text-green-200 rounded text-sm">{success}</div>}
 
@@ -432,6 +463,7 @@ export default function AdminDashboard({ user, apiUrl, sessionToken }) {
                       <p className="text-gray-400 text-xs mt-1">
                         {roles.find(r => r.id === t.assigned_role)?.name || 'Unknown'}
                         {t.is_critical && ' • Critical'}
+                        {t.is_persistent && ' • Persistent'}
                       </p>
                     </div>
                     <button

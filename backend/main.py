@@ -793,26 +793,31 @@ def get_daily_dashboard(
             if entry.staff_id not in staff_on_duty:
                 staff = db.query(Staff).filter(Staff.id == entry.staff_id).first()
                 role = db.query(Role).filter(Role.id == staff.role_id).first()
+                # Count total tasks assigned to this role for this facility
+                assigned_tasks = db.query(Task).filter(
+                    Task.facility_id == facility_id,
+                    Task.assigned_role == staff.role_id
+                ).count()
                 staff_on_duty[entry.staff_id] = {
                     "staff_id": staff.id,
                     "name": staff.name,
                     "role": role.name,
                     "completed": 0,
-                    "total": 0,
+                    "total": assigned_tasks,
                     "critical_missed": 0
                 }
 
         for entry in task_entries:
-            staff_on_duty[entry.staff_id]["total"] += 1
             if entry.status == "yes":
                 staff_on_duty[entry.staff_id]["completed"] += 1
-            if entry.status != "yes" and db.query(Task).filter(Task.id == entry.task_id).first().is_critical:
+            task = db.query(Task).filter(Task.id == entry.task_id).first()
+            if entry.status != "yes" and task.is_critical:
                 staff_on_duty[entry.staff_id]["critical_missed"] += 1
 
             facility_total += 1
             if entry.status == "yes":
                 facility_completed += 1
-            if entry.status != "yes" and db.query(Task).filter(Task.id == entry.task_id).first().is_critical:
+            if entry.status != "yes" and task.is_critical:
                 facility_critical_missed += 1
 
         shift_staff = []

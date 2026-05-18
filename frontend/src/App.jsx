@@ -11,6 +11,7 @@ const API_URL = 'https://shiftcrew-production.up.railway.app'
 function App() {
   const [token, setToken] = useState(localStorage.getItem('session_token'))
   const [staffId, setStaffId] = useState(localStorage.getItem('staff_id'))
+  const [selectedShift, setSelectedShift] = useState(parseInt(localStorage.getItem('selected_shift')) || null)
   const [currentStaff, setCurrentStaff] = useState(null)
   const [loading, setLoading] = useState(true)
   const [firstLogin, setFirstLogin] = useState(false)
@@ -50,6 +51,10 @@ function App() {
     console.log('staffData:', staffData)
     localStorage.setItem('session_token', loginToken)
     localStorage.setItem('staff_id', staffData.id)
+    if (staffData.shift_id) {
+      localStorage.setItem('selected_shift', staffData.shift_id)
+      setSelectedShift(staffData.shift_id)
+    }
     console.log('Token saved to localStorage')
     setToken(loginToken)
     setStaffId(staffData.id)
@@ -67,8 +72,10 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('session_token')
     localStorage.removeItem('staff_id')
+    localStorage.removeItem('selected_shift')
     setToken(null)
     setStaffId(null)
+    setSelectedShift(null)
     setCurrentStaff(null)
   }
 
@@ -131,7 +138,7 @@ function App() {
             </div>
           )}
           {currentScreen === 'dashboard' || !isAdmin ? (
-            <ChecklistScreen token={token} staffId={staffId} currentStaff={currentStaff} onLogout={handleLogout} apiUrl={API_URL} />
+            <ChecklistScreen token={token} staffId={staffId} currentStaff={currentStaff} onLogout={handleLogout} apiUrl={API_URL} lockedShift={selectedShift} />
           ) : currentScreen === 'admin' ? (
             <AdminDashboard user={currentStaff} apiUrl={API_URL} sessionToken={token} />
           ) : (
