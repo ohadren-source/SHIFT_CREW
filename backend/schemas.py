@@ -207,6 +207,52 @@ class WeeklyDashboardResponse(BaseModel):
 
 
 # =====================
+# NOTE SCHEMAS
+# =====================
+
+class NoteRequest(BaseModel):
+    content: str
+    facility_id: int
+
+
+class NoteResponse(BaseModel):
+    id: int
+    facility_id: int
+    staff_id: int
+    content: str
+    timestamp: datetime
+    created_at: datetime
+    staff_name: str
+
+    class Config:
+        from_attributes = True
+
+
+# =====================
+# SUPPLY SCHEMAS
+# =====================
+
+class SupplyRequest(BaseModel):
+    supply_name: str
+    quantity: int
+    facility_id: int
+
+
+class SupplyResponse(BaseModel):
+    id: int
+    facility_id: int
+    staff_id: int
+    supply_name: str
+    quantity: int
+    timestamp: datetime
+    created_at: datetime
+    staff_name: str
+
+    class Config:
+        from_attributes = True
+
+
+# =====================
 # ERROR SCHEMAS
 # =====================
 

@@ -9,11 +9,12 @@ from typing import Optional
 import pytz
 
 from database import get_db, engine
-from models import Base, Staff, Role, Facility, Shift, Task, TaskEntry, CarryOverQueue, TaskStatus
+from models import Base, Staff, Role, Facility, Shift, Task, TaskEntry, CarryOverQueue, TaskStatus, Note, Supply
 from auth import hash_password, verify_password, create_access_token, decode_access_token, extract_token_from_header
 from schemas import (
     RegisterRequest, AdminCreateStaffRequest, SignInRequest, GoogleAuthRequest, AuthResponse,
     TaskEntryRequest, TaskEntryResponse, CarryOverTaskDetail,
+    NoteRequest, NoteResponse, SupplyRequest, SupplyResponse,
     DailyDashboardResponse, WeeklyDashboardResponse, ErrorResponse
 )
 
@@ -484,6 +485,157 @@ async def check_admin(current_staff: Staff = Depends(get_current_staff), db: Ses
     if not admin_role or current_staff.role_id != admin_role.id:
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_staff
+
+
+# =====================
+# NOTE ENDPOINTS
+# =====================
+
+@app.get("/notes")
+def get_notes(
+    facility_id: int,
+    current_staff: Staff = Depends(get_current_staff),
+    db: Session = Depends(get_db)
+):
+    """Get all notes for a facility, ordered by timestamp (oldest first)"""
+    notes = db.query(Note).filter(Note.facility_id == facility_id).order_by(Note.timestamp.asc()).all()
+
+    return {
+        "notes": [
+            {
+                "id": note.id,
+                "facility_id": note.facility_id,
+                "staff_id": note.staff_id,
+                "content": note.content,
+                "timestamp": note.timestamp.isoformat() if note.timestamp else None,
+                "created_at": note.created_at.isoformat() if note.created_at else None,
+                "staff_name": note.staff.name or note.staff.email
+            }
+            for note in notes
+        ]
+    }
+
+
+@app.post("/note", response_model=NoteResponse)
+def create_note(
+    request: NoteRequest,
+    current_staff: Staff = Depends(get_current_staff),
+    db: Session = Depends(get_db)
+):
+    """Create a new note"""
+    note = Note(
+        facility_id=request.facility_id,
+        staff_id=current_staff.id,
+        content=request.content,
+        timestamp=get_est_now()
+    )
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+
+    return NoteResponse(
+        id=note.id,
+        facility_id=note.facility_id,
+        staff_id=note.staff_id,
+        content=note.content,
+        timestamp=note.timestamp,
+        created_at=note.created_at,
+        staff_name=note.staff.name or note.staff.email
+    )
+
+
+@app.delete("/note/{note_id}")
+def delete_note(
+    note_id: int,
+    current_admin: Staff = Depends(check_admin),
+    db: Session = Depends(get_db)
+):
+    """Delete a note (admin only)"""
+    note = db.query(Note).filter(Note.id == note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    db.delete(note)
+    db.commit()
+
+    return {"message": "Note deleted successfully"}
+
+
+# =====================
+# SUPPLY ENDPOINTS
+# =====================
+
+@app.get("/supplies")
+def get_supplies(
+    facility_id: int,
+    current_staff: Staff = Depends(get_current_staff),
+    db: Session = Depends(get_db)
+):
+    """Get all supplies for a facility, ordered by timestamp (newest first)"""
+    supplies = db.query(Supply).filter(Supply.facility_id == facility_id).order_by(Supply.timestamp.desc()).all()
+
+    return {
+        "supplies": [
+            {
+                "id": supply.id,
+                "facility_id": supply.facility_id,
+                "staff_id": supply.staff_id,
+                "supply_name": supply.supply_name,
+                "quantity": supply.quantity,
+                "timestamp": supply.timestamp.isoformat() if supply.timestamp else None,
+                "created_at": supply.created_at.isoformat() if supply.created_at else None,
+                "staff_name": supply.staff.name or supply.staff.email
+            }
+            for supply in supplies
+        ]
+    }
+
+
+@app.post("/supply", response_model=SupplyResponse)
+def create_supply(
+    request: SupplyRequest,
+    current_staff: Staff = Depends(get_current_staff),
+    db: Session = Depends(get_db)
+):
+    """Create a new supply entry"""
+    supply = Supply(
+        facility_id=request.facility_id,
+        staff_id=current_staff.id,
+        supply_name=request.supply_name,
+        quantity=request.quantity,
+        timestamp=get_est_now()
+    )
+    db.add(supply)
+    db.commit()
+    db.refresh(supply)
+
+    return SupplyResponse(
+        id=supply.id,
+        facility_id=supply.facility_id,
+        staff_id=supply.staff_id,
+        supply_name=supply.supply_name,
+        quantity=supply.quantity,
+        timestamp=supply.timestamp,
+        created_at=supply.created_at,
+        staff_name=supply.staff.name or supply.staff.email
+    )
+
+
+@app.delete("/supply/{supply_id}")
+def delete_supply(
+    supply_id: int,
+    current_admin: Staff = Depends(check_admin),
+    db: Session = Depends(get_db)
+):
+    """Delete a supply entry (admin only)"""
+    supply = db.query(Supply).filter(Supply.id == supply_id).first()
+    if not supply:
+        raise HTTPException(status_code=404, detail="Supply not found")
+
+    db.delete(supply)
+    db.commit()
+
+    return {"message": "Supply deleted successfully"}
 
 
 # =====================

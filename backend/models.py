@@ -35,6 +35,8 @@ class Facility(Base):
     tasks = relationship("Task", back_populates="facility")
     task_entries = relationship("TaskEntry", back_populates="facility")
     carry_over_queue = relationship("CarryOverQueue", back_populates="facility")
+    notes = relationship("Note", back_populates="facility")
+    supplies = relationship("Supply", back_populates="facility")
 
 
 class Shift(Base):
@@ -73,6 +75,8 @@ class Staff(Base):
     role = relationship("Role", back_populates="staff")
     facility = relationship("Facility", back_populates="staff")
     task_entries = relationship("TaskEntry", back_populates="staff")
+    notes = relationship("Note", back_populates="staff")
+    supplies = relationship("Supply", back_populates="staff")
 
 
 class TaskStatus(str, enum.Enum):
@@ -141,3 +145,34 @@ class CarryOverQueue(Base):
     task_entry = relationship("TaskEntry")
     shift = relationship("Shift", back_populates="carry_over_queue")
     facility = relationship("Facility", back_populates="carry_over_queue")
+
+
+class Note(Base):
+    __tablename__ = "notes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    facility_id = Column(Integer, ForeignKey("facilities.id"), index=True)
+    staff_id = Column(Integer, ForeignKey("staff.id"), index=True)
+    content = Column(Text)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    facility = relationship("Facility", back_populates="notes")
+    staff = relationship("Staff", back_populates="notes")
+
+
+class Supply(Base):
+    __tablename__ = "supplies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    facility_id = Column(Integer, ForeignKey("facilities.id"), index=True)
+    staff_id = Column(Integer, ForeignKey("staff.id"), index=True)
+    supply_name = Column(String)
+    quantity = Column(Integer)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    facility = relationship("Facility", back_populates="supplies")
+    staff = relationship("Staff", back_populates="supplies")

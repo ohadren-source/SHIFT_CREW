@@ -37,9 +37,16 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
   const [rooms, setRooms] = useState(allRooms)
   const [addingRoom, setAddingRoom] = useState(false)
   const [newRoomName, setNewRoomName] = useState('')
+  const [notes, setNotes] = useState([])
+  const [expandedNotes, setExpandedNotes] = useState({})
+  const [newNote, setNewNote] = useState('')
+  const [supplies, setSupplies] = useState([])
+  const [newSupplyName, setNewSupplyName] = useState('')
+  const [newSupplyQty, setNewSupplyQty] = useState('')
 
   useEffect(() => {
     fetchTasks()
+    fetchNotesAndSupplies()
   }, [selectedShift])
 
   const fetchTasks = async () => {
@@ -81,6 +88,99 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
       setMessage('Failed to load tasks')
     }
     setLoading(false)
+  }
+
+  const fetchNotesAndSupplies = async () => {
+    try {
+      const [notesRes, suppliesRes] = await Promise.all([
+        fetch(`${apiUrl}/notes?facility_id=1`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${apiUrl}/supplies?facility_id=1`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ])
+      const notesData = await notesRes.json()
+      const suppliesData = await suppliesRes.json()
+      setNotes(notesData.notes || [])
+      setSupplies(suppliesData.supplies || [])
+    } catch (err) {
+      console.error('Failed to fetch notes/supplies:', err)
+    }
+  }
+
+  const handleAddNote = async () => {
+    if (!newNote.trim()) return
+
+    try {
+      const res = await fetch(`${apiUrl}/note`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          content: newNote,
+          facility_id: 1
+        })
+      })
+      if (res.ok) {
+        setNewNote('')
+        await fetchNotesAndSupplies()
+      }
+    } catch (err) {
+      console.error('Failed to add note:', err)
+    }
+  }
+
+  const handleDeleteNote = async (noteId) => {
+    try {
+      await fetch(`${apiUrl}/note/${noteId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      await fetchNotesAndSupplies()
+    } catch (err) {
+      console.error('Failed to delete note:', err)
+    }
+  }
+
+  const handleAddSupply = async () => {
+    if (!newSupplyName.trim() || !newSupplyQty) return
+
+    try {
+      const res = await fetch(`${apiUrl}/supply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          supply_name: newSupplyName,
+          quantity: parseInt(newSupplyQty),
+          facility_id: 1
+        })
+      })
+      if (res.ok) {
+        setNewSupplyName('')
+        setNewSupplyQty('')
+        await fetchNotesAndSupplies()
+      }
+    } catch (err) {
+      console.error('Failed to add supply:', err)
+    }
+  }
+
+  const handleDeleteSupply = async (supplyId) => {
+    try {
+      await fetch(`${apiUrl}/supply/${supplyId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      await fetchNotesAndSupplies()
+    } catch (err) {
+      console.error('Failed to delete supply:', err)
+    }
   }
 
   const handleTaskChange = (taskId, status, notes = '') => {
@@ -296,6 +396,121 @@ export default function ChecklistScreen({ token, staffId, currentStaff, onLogout
             ) : (
               <div className="text-gray-400">Select a room to view tasks</div>
             )}
+        </div>
+
+        {/* Notes Section */}
+        <div className="mt-8 border-t border-gray-700 pt-6">
+          <h3 className="text-xl font-bold text-teal-400 mb-4">Notes</h3>
+
+          {/* Add Note */}
+          <div className="mb-6">
+            <textarea
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              placeholder="Add a note..."
+              className="w-full px-4 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-teal-400 focus:outline-none"
+              rows="2"
+            />
+            <button
+              onClick={handleAddNote}
+              className="mt-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded transition"
+            >
+              Submit Note
+            </button>
+          </div>
+
+          {/* Notes List (newest at bottom) */}
+          <div className="space-y-2">
+            {notes.map(note => (
+              <div
+                key={note.id}
+                className="bg-gray-800 rounded p-3 border border-gray-700"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <button
+                      onClick={() => setExpandedNotes(prev => ({
+                        ...prev,
+                        [note.id]: !prev[note.id]
+                      }))}
+                      className="text-teal-400 font-bold text-sm hover:underline"
+                    >
+                      {expandedNotes[note.id] ? '▼' : '▶'} {note.staff_name} - {new Date(note.timestamp).toLocaleString('en-US', { timeZone: 'America/New_York' })}
+                    </button>
+                  </div>
+                  {currentStaff?.email === 'amb@grscorp.us' && (
+                    <button
+                      onClick={() => handleDeleteNote(note.id)}
+                      className="ml-2 text-red-400 hover:text-red-600 text-xs font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+                {expandedNotes[note.id] && (
+                  <p className="text-gray-300 text-sm mt-2 ml-4 whitespace-pre-wrap">{note.content}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Supplies Section */}
+        <div className="mt-8 border-t border-gray-700 pt-6">
+          <h3 className="text-xl font-bold text-teal-400 mb-4">Supplies</h3>
+
+          {/* Add Supply */}
+          <div className="mb-6">
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              <input
+                type="text"
+                value={newSupplyName}
+                onChange={(e) => setNewSupplyName(e.target.value)}
+                placeholder="Supply name"
+                className="col-span-2 px-4 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-teal-400 focus:outline-none"
+              />
+              <input
+                type="number"
+                value={newSupplyQty}
+                onChange={(e) => setNewSupplyQty(e.target.value)}
+                placeholder="Qty"
+                className="px-4 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-teal-400 focus:outline-none"
+                min="1"
+              />
+            </div>
+            <button
+              onClick={handleAddSupply}
+              className="w-full px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded transition"
+            >
+              Submit Supply
+            </button>
+          </div>
+
+          {/* Supplies List (newest at top) - reverse sort */}
+          <div className="space-y-2">
+            {[...supplies].reverse().map(supply => (
+              <div
+                key={supply.id}
+                className="bg-gray-800 rounded p-3 border border-gray-700 flex justify-between items-center"
+              >
+                <div className="text-sm">
+                  <p className="text-white font-bold">{supply.supply_name}</p>
+                  <p className="text-gray-400 text-xs">{supply.staff_name} - {new Date(supply.timestamp).toLocaleString('en-US', { timeZone: 'America/New_York' })}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-teal-400 font-bold text-lg">{supply.quantity}</span>
+                  {currentStaff?.email === 'amb@grscorp.us' && (
+                    <button
+                      onClick={() => handleDeleteSupply(supply.id)}
+                      className="text-red-400 hover:text-red-600 font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
