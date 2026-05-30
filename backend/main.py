@@ -421,7 +421,8 @@ def submit_task_entry(
         date=today,
         status=request.status,
         notes=request.notes,
-        carry_over=False
+        carry_over=False,
+        timestamp=get_est_now()
     )
     db.add(task_entry)
     db.flush()
@@ -934,7 +935,7 @@ def get_daily_dashboard(
     from datetime import datetime as dt
 
     try:
-        query_date = dt.strptime(date, "%Y-%m-%d").date()
+        query_date = dt.strptime(date, "%Y-%m-%d").replace(tzinfo=EST).date()
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
 
@@ -1046,7 +1047,7 @@ def get_weekly_dashboard(
     from datetime import datetime as dt, timedelta
 
     try:
-        start_date = dt.strptime(week_start, "%Y-%m-%d").date()
+        start_date = dt.strptime(week_start, "%Y-%m-%d").replace(tzinfo=EST).date()
         end_date = start_date + timedelta(days=6)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
