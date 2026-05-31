@@ -992,7 +992,7 @@ def get_daily_dashboard(
         for staff_id, metrics in staff_on_duty.items():
             completion_pct = (metrics["completed"] / metrics["total"] * 100) if metrics["total"] > 0 else 0
 
-            # Get latest completion timestamp
+            # Get latest completion timestamp (convert to EST)
             latest_yes = db.query(TaskEntry).filter(
                 TaskEntry.staff_id == staff_id,
                 TaskEntry.shift_id == shift.id,
@@ -1001,7 +1001,15 @@ def get_daily_dashboard(
                 TaskEntry.status == "yes"
             ).order_by(TaskEntry.timestamp.desc()).first()
 
-            latest_completion = latest_yes.timestamp.isoformat() if latest_yes else None
+            if latest_yes:
+                # Convert UTC to EST if needed
+                ts = latest_yes.timestamp
+                if ts.tzinfo is None:
+                    ts = pytz.UTC.localize(ts)
+                ts_est = ts.astimezone(EST)
+                latest_completion = ts_est.isoformat()
+            else:
+                latest_completion = None
 
             shift_staff.append({
                 "staff_id": metrics["staff_id"],
