@@ -429,7 +429,8 @@ def submit_task_entry(
         status=request.status,
         notes=request.notes,
         carry_over=False,
-        timestamp=get_est_now()
+        timestamp=get_est_now(),
+        created_at=get_est_now()
     )
     db.add(task_entry)
     db.flush()
@@ -535,7 +536,8 @@ def create_note(
         facility_id=request.facility_id,
         staff_id=current_staff.id,
         content=request.content,
-        timestamp=get_est_now()
+        timestamp=get_est_now(),
+        created_at=get_est_now()
     )
     db.add(note)
     db.commit()
@@ -611,7 +613,8 @@ def create_supply(
         staff_id=current_staff.id,
         supply_name=request.supply_name,
         quantity=request.quantity,
-        timestamp=get_est_now()
+        timestamp=get_est_now(),
+        created_at=get_est_now()
     )
     db.add(supply)
     db.commit()
