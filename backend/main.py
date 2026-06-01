@@ -1065,7 +1065,7 @@ def seed_data(db: Session = Depends(get_db)):
 
         entry_count = 0
         for idx, task in enumerate(sample_tasks):
-            status = "yes" if idx % 3 != 0 else "no"  # 2/3 completed, 1/3 missed
+            status = TaskStatus.YES if idx % 3 != 0 else TaskStatus.NO  # 2/3 completed, 1/3 missed
             entry = TaskEntry(
                 task_id=task.id,
                 staff_id=admin_staff.id,
@@ -1073,7 +1073,7 @@ def seed_data(db: Session = Depends(get_db)):
                 facility_id=facility.id,
                 date=date_type(2026, 6, 1),
                 status=status,
-                notes=f"Logged during seeding - {task.task_name}",
+                notes=f"Sample entry created during seeding",
                 timestamp=get_est_now(),
                 carry_over=False
             )
