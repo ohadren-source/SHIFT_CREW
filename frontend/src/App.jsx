@@ -4,6 +4,7 @@ import ChecklistScreen from './components/ChecklistScreen'
 import ChangePasswordScreen from './components/ChangePasswordScreen'
 import AdminDashboard from './components/AdminDashboard'
 import DailyDashboard from './components/DailyDashboard'
+import WeeklyDashboard from './components/WeeklyDashboard'
 import './App.css'
 
 const API_URL = 'https://shiftcrew-production.up.railway.app'
@@ -123,7 +124,17 @@ function App() {
                         : 'text-gray-300 hover:text-white'
                     }`}
                   >
-                    Dashboard
+                    Daily
+                  </button>
+                  <button
+                    onClick={() => setCurrentScreen('weekly-dashboard')}
+                    className={`px-4 py-2 rounded font-medium transition ${
+                      currentScreen === 'weekly-dashboard'
+                        ? 'bg-teal-500 text-white'
+                        : 'text-gray-300 hover:text-white'
+                    }`}
+                  >
+                    Weekly
                   </button>
                 </div>
                 <button
@@ -139,8 +150,10 @@ function App() {
             <ChecklistScreen token={token} staffId={staffId} currentStaff={currentStaff} onLogout={handleLogout} apiUrl={API_URL} lockedShift={selectedShift} />
           ) : currentScreen === 'admin' ? (
             <AdminDashboard user={currentStaff} apiUrl={API_URL} sessionToken={token} />
-          ) : (
+          ) : currentScreen === 'daily-dashboard' ? (
             <DailyDashboard token={token} apiUrl={API_URL} facilityId={1} />
+          ) : (
+            <WeeklyDashboard token={token} apiUrl={API_URL} facilityId={1} />
           )}
         </>
       )}
