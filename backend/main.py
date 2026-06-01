@@ -46,12 +46,10 @@ def init_admin():
 
     admin_role = db.query(Role).filter(Role.name == "ADMIN").first()
 
-    # Get or create GRSCORP Household facility
-    facility = db.query(Facility).filter(Facility.name == "GRSCORP Household").first()
+    # Get first facility or create default
+    facility = db.query(Facility).first()
     if not facility:
-        facility = db.query(Facility).first()
-    if not facility:
-        facility = Facility(name="GRSCORP Household")
+        facility = Facility(name="Default Facility")
         db.add(facility)
         db.commit()
 
@@ -69,7 +67,7 @@ def init_admin():
         db.add(admin)
         db.commit()
     else:
-        # Update existing admin's facility to correct one
+        # Ensure admin is on the same facility as data
         if admin_exists.facility_id != facility.id:
             admin_exists.facility_id = facility.id
             db.commit()
