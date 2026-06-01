@@ -1038,10 +1038,20 @@ def seed_data(db: Session = Depends(get_db)):
     db.commit()
 
     # =====================
-    # 5. CREATE SAMPLE CARETAKER STAFF & TASK ENTRIES FOR 2026-06-01
+    # 5. CLEAR OLD ENTRIES FOR 2026-06-01 (cleanup from repeated seeding)
+    # =====================
+    from datetime import date as date_type
+
+    db.query(TaskEntry).filter(
+        TaskEntry.facility_id == facility.id,
+        TaskEntry.date == date_type(2026, 6, 1)
+    ).delete()
+    db.commit()
+
+    # =====================
+    # 6. CREATE SAMPLE CARETAKER STAFF & TASK ENTRIES FOR 2026-06-01
     # =====================
     # Create a test caretaker (not admin) so task logging is role-appropriate
-    from datetime import date as date_type
 
     caretaker_staff = db.query(Staff).filter(
         Staff.facility_id == facility.id,
