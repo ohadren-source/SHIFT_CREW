@@ -1125,6 +1125,15 @@ def seed_data(db: Session = Depends(get_db)):
         Staff.facility_id == facility.id,
         Staff.role_id == roles["ADMIN"].id
     ).count()
+    caretaker_count = db.query(Staff).filter(
+        Staff.facility_id == facility.id,
+        Staff.role_id == caretaker_role.id
+    ).count()
+    entries_by_caretaker = db.query(TaskEntry).filter(
+        TaskEntry.facility_id == facility.id,
+        TaskEntry.date == date_type(2026, 6, 1),
+        TaskEntry.staff_id == caretaker_staff.id if caretaker_staff else False
+    ).count() if caretaker_staff else 0
 
     return {
         "message": "Database seeded successfully",
@@ -1134,11 +1143,14 @@ def seed_data(db: Session = Depends(get_db)):
         "tasks_created": task_count,
         "total_tasks_in_db": total_tasks,
         "sample_entries_created": entries_created,
+        "entries_by_caretaker_staff": entries_by_caretaker,
         "total_entries_in_db": total_entries,
         "entries_for_2026_06_01": total_entries_2026_06_01,
         "staff_on_facility": staff_count,
+        "caretaker_staff_on_facility": caretaker_count,
         "admin_staff_on_facility": admin_count,
-        "admin_staff_exists": admin_staff is not None
+        "caretaker_staff_id": caretaker_staff.id if caretaker_staff else None,
+        "caretaker_staff_email": caretaker_staff.email if caretaker_staff else None
     }
 
 
