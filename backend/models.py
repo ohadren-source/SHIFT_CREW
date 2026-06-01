@@ -13,7 +13,7 @@ class Role(Base):
     name = Column(String, unique=True, index=True)  # CARETAKER, CLEANER, MAINTENANCE, ADMIN
     active = Column(Boolean, default=True)
     description = Column(String, nullable=True)
-    created_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     staff = relationship("Staff", back_populates="role")
@@ -26,7 +26,7 @@ class Facility(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)  # e.g., "GRSCORP Household"
     location = Column(String, nullable=True)
-    created_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     staff = relationship("Staff", back_populates="facility")
@@ -46,7 +46,7 @@ class Shift(Base):
     name = Column(String)  # 1st Shift (AM), 2nd Shift (Midday), etc.
     start_time = Column(Time)
     end_time = Column(Time)
-    created_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     facility = relationship("Facility", back_populates="shifts")
@@ -65,9 +65,9 @@ class Staff(Base):
     name = Column(String, nullable=True)
     role_id = Column(Integer, ForeignKey("roles.id"), index=True)
     facility_id = Column(Integer, ForeignKey("facilities.id"), index=True)
-    created_at = Column(DateTime, nullable=True)
-    updated_at = Column(DateTime, nullable=True)
-    last_login = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=True)
+    updated_at = Column(DateTime(timezone=True), nullable=True)
+    last_login = Column(DateTime(timezone=True), nullable=True)
     first_login = Column(Boolean, default=True)
 
     # Relationships
@@ -95,7 +95,7 @@ class Task(Base):
     is_critical = Column(Boolean, default=False)
     is_persistent = Column(Boolean, default=False)  # Pet care, must-dos
     default_shift = Column(Integer, ForeignKey("shifts.id"), nullable=True)
-    created_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     facility = relationship("Facility", back_populates="tasks")
@@ -115,9 +115,9 @@ class TaskEntry(Base):
     date = Column(Date, index=True)  # Shift date for daily reset
     status = Column(Enum(TaskStatus), index=True)  # yes, no, not_done
     notes = Column(Text, nullable=True)
-    timestamp = Column(DateTime, nullable=True, index=True)
+    timestamp = Column(DateTime(timezone=True), nullable=True, index=True)
     carry_over = Column(Boolean, default=False)  # True if this was a carried task
-    created_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     task = relationship("Task", back_populates="task_entries")
@@ -136,8 +136,8 @@ class CarryOverQueue(Base):
     facility_id = Column(Integer, ForeignKey("facilities.id"), index=True)
     assigned_to_shift_date = Column(Date, index=True)  # When carry-over should appear
     resolved = Column(Boolean, default=False, index=True)
-    resolved_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, nullable=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     task = relationship("Task")
@@ -153,8 +153,8 @@ class Note(Base):
     facility_id = Column(Integer, ForeignKey("facilities.id"), index=True)
     staff_id = Column(Integer, ForeignKey("staff.id"), index=True)
     content = Column(Text)
-    timestamp = Column(DateTime, nullable=True, index=True)
-    created_at = Column(DateTime, nullable=True)
+    timestamp = Column(DateTime(timezone=True), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     facility = relationship("Facility", back_populates="notes")
@@ -169,8 +169,8 @@ class Supply(Base):
     staff_id = Column(Integer, ForeignKey("staff.id"), index=True)
     supply_name = Column(String)
     quantity = Column(Integer)
-    timestamp = Column(DateTime, nullable=True, index=True)
-    created_at = Column(DateTime, nullable=True)
+    timestamp = Column(DateTime(timezone=True), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     facility = relationship("Facility", back_populates="supplies")
