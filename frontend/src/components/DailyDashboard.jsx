@@ -51,11 +51,11 @@ export default function DailyDashboard({ token, apiUrl, facilityId = 1 }) {
   if (loading) return <div className="text-gray-400">Loading...</div>
   if (!data) return <div className="text-gray-400">No data</div>
 
-  const totalTasks = data.facility_totals?.total || 0
-  const completed = data.facility_totals?.completed || 0
-  const missed = data.facility_totals?.missed || 0
-  const notDone = data.facility_totals?.not_done || 0
-  const completionRate = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0
+  const totalTasks = data.facility_totals?.tasks_total || 0
+  const completed = data.facility_totals?.tasks_completed || 0
+  const completionRate = data.facility_totals?.completion_pct || 0
+  const criticalMissed = data.facility_totals?.critical_missed || 0
+  const notDone = totalTasks - completed  // Calculate from total and completed
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black p-8">
@@ -81,8 +81,8 @@ export default function DailyDashboard({ token, apiUrl, facilityId = 1 }) {
             <p className="text-3xl font-bold text-green-400">{completed}</p>
           </div>
           <div className="bg-red-900 bg-opacity-30 rounded-lg p-4 border border-red-600">
-            <p className="text-gray-400 text-sm">Missed</p>
-            <p className="text-3xl font-bold text-red-400">{missed}</p>
+            <p className="text-gray-400 text-sm">Critical Missed</p>
+            <p className="text-3xl font-bold text-red-400">{criticalMissed}</p>
           </div>
           <div className="bg-yellow-900 bg-opacity-30 rounded-lg p-4 border border-yellow-600">
             <p className="text-gray-400 text-sm">Not Done</p>
