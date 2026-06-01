@@ -857,72 +857,193 @@ def get_facilities(
 
 @app.post("/seed")
 def seed_data(db: Session = Depends(get_db)):
-    """Seed database with test data (dev only)"""
-    facility = db.query(Facility).first()
+    """Seed database with complete test data (dev only)"""
+    from datetime import time as time_type
+
+    # =====================
+    # 1. CREATE/GET FACILITY
+    # =====================
+    facility = db.query(Facility).filter(Facility.id == 1).first()
     if not facility:
-        facility = Facility(name="Default Facility")
+        facility = Facility(id=1, name="GRSCORP Household", location="Selkirk, NY")
         db.add(facility)
         db.commit()
         db.refresh(facility)
 
-    cleaner_role = db.query(Role).filter(Role.name == "CLEANER").first()
-    if not cleaner_role:
-        cleaner_role = Role(name="CLEANER")
-        db.add(cleaner_role)
-        db.commit()
-        db.refresh(cleaner_role)
+    # =====================
+    # 2. CREATE/GET ROLES
+    # =====================
+    roles_data = [
+        {"name": "CARETAKER", "active": True, "description": "Household/facility caretaker"},
+        {"name": "CLEANER", "active": False, "description": "Dedicated cleaning staff"},
+        {"name": "MAINTENANCE", "active": False, "description": "Maintenance and repairs"},
+        {"name": "ADMIN", "active": True, "description": "Administrator - dashboard access"},
+    ]
 
-    shift = db.query(Shift).filter(Shift.facility_id == facility.id).first()
-    if not shift:
-        from datetime import time
-        shift = Shift(
-            facility_id=facility.id,
-            name="1st Shift (AM)",
-            start_time=time(6, 0),
-            end_time=time(14, 0)
-        )
-        db.add(shift)
-        db.commit()
-        db.refresh(shift)
+    roles = {}
+    for role_data in roles_data:
+        role = db.query(Role).filter(Role.name == role_data["name"]).first()
+        if not role:
+            role = Role(**role_data)
+            db.add(role)
+            db.commit()
+        roles[role_data["name"]] = role
 
-    # Create tasks from spec if none exist
-    existing_tasks = db.query(Task).filter(Task.facility_id == facility.id).count()
-    if existing_tasks == 0:
-        spec_tasks = {
-            "Azlan's Room": ["Bed made", "Toys organized", "Clothes put away", "Floor vacuumed", "Surfaces wiped", "Sheets changed", "Laundry basket checked"],
-            "Azlan's Bathroom": ["Sink cleaned", "Toilet cleaned", "Shower/tub rinsed", "Mirror wiped", "Trash emptied", "Towels replaced"],
-            "Asad's Room": ["Bed made", "Clothes organized", "Floor vacuumed", "Surfaces wiped", "Trash emptied", "Laundry basket checked"],
-            "Asad's Bathroom": ["Sink cleaned", "Toilet cleaned", "Shower cleaned", "Mirror wiped", "Trash emptied", "Towels replaced"],
-            "Study Room": ["Desk organized", "Books arranged", "Floor vacuumed", "Surfaces wiped", "Trash emptied"],
-            "Kitchen": ["Dishes done", "Sink cleaned", "Counters wiped", "Stove wiped", "Floor swept", "Trash checked"],
-            "Dining Area": ["Table wiped", "Chairs cleaned", "Area swept"],
-            "Sitting Area": ["Couch organized", "Cushions arranged", "Floor vacuumed", "Surfaces wiped"],
-            "Hallways": ["Floor vacuumed", "Shoes organized", "Items removed", "Walls spot-cleaned"],
-            "Downstairs Bathroom": ["Sink cleaned", "Toilet cleaned", "Mirror wiped", "Trash emptied", "Floor mopped"],
-            "Stairs": ["Steps vacuumed", "Railings wiped"],
-            "Office": ["Desk organized", "Trash emptied", "Floor vacuumed", "Surfaces wiped"],
-            "Pets": ["Coco food full", "Coco water full", "Coco morning walk", "Coco evening walk", "Birds feeding", "Birds cage cleaning", "Tortoise feeding", "Tortoise water"],
-            "Laundry": ["Wash clothes", "Dry clothes", "Fold clothes", "Iron clothes"],
-            "Final Checks": ["Doors locked", "Lights checked", "Trash out"]
-        }
+    # =====================
+    # 3. CREATE/GET SHIFTS
+    # =====================
+    shifts_data = [
+        {"name": "1st Shift (AM)", "start_time": time_type(6, 0), "end_time": time_type(14, 0)},
+        {"name": "2nd Shift (Midday)", "start_time": time_type(14, 0), "end_time": time_type(22, 0)},
+        {"name": "3rd Shift (PM)", "start_time": time_type(22, 0), "end_time": time_type(6, 0)},
+        {"name": "Weekend Shift", "start_time": time_type(6, 0), "end_time": time_type(22, 0)},
+    ]
 
-        for room, tasks in spec_tasks.items():
-            for task_name in tasks:
-                is_crit = task_name in ["Bed made", "Coco food full", "Coco water full", "Doors locked"]
-                is_pers = "Coco" in task_name or room == "Pets"
-                task = Task(
-                    facility_id=facility.id,
-                    room=room,
-                    task_name=task_name,
-                    assigned_role=cleaner_role.id,
-                    is_critical=is_crit,
-                    is_persistent=is_pers,
-                    default_shift=shift.id
-                )
-                db.add(task)
-        db.commit()
+    shifts = {}
+    for shift_data in shifts_data:
+        shift = db.query(Shift).filter(
+            Shift.facility_id == facility.id,
+            Shift.name == shift_data["name"]
+        ).first()
+        if not shift:
+            shift = Shift(facility_id=facility.id, **shift_data)
+            db.add(shift)
+            db.commit()
+        shifts[shift_data["name"]] = shift
 
-    return {"message": "Database seeded successfully"}
+    # =====================
+    # 4. CREATE/GET TASKS
+    # =====================
+    caretaker_role = roles["CARETAKER"]
+
+    tasks_data = [
+        # Azlan's Room
+        {"room": "Azlan's Room", "task_name": "Bed made", "is_critical": False},
+        {"room": "Azlan's Room", "task_name": "Toys organized", "is_critical": False},
+        {"room": "Azlan's Room", "task_name": "Clothes put away", "is_critical": False},
+        {"room": "Azlan's Room", "task_name": "Floor vacuumed", "is_critical": False},
+        {"room": "Azlan's Room", "task_name": "Surfaces wiped", "is_critical": False},
+        {"room": "Azlan's Room", "task_name": "Sheets changed (Mon/Wed/Fri)", "is_critical": False},
+        {"room": "Azlan's Room", "task_name": "Laundry basket checked", "is_critical": False},
+
+        # Azlan's Bathroom
+        {"room": "Azlan's Bathroom", "task_name": "Sink cleaned", "is_critical": False},
+        {"room": "Azlan's Bathroom", "task_name": "Toilet cleaned", "is_critical": False},
+        {"room": "Azlan's Bathroom", "task_name": "Shower/tub rinsed", "is_critical": False},
+        {"room": "Azlan's Bathroom", "task_name": "Mirror wiped", "is_critical": False},
+        {"room": "Azlan's Bathroom", "task_name": "Trash emptied", "is_critical": False},
+        {"room": "Azlan's Bathroom", "task_name": "Towels replaced", "is_critical": False},
+
+        # Asad's Room
+        {"room": "Asad's Room", "task_name": "Bed made", "is_critical": False},
+        {"room": "Asad's Room", "task_name": "Clothes organized", "is_critical": False},
+        {"room": "Asad's Room", "task_name": "Floor vacuumed", "is_critical": False},
+        {"room": "Asad's Room", "task_name": "Surfaces wiped", "is_critical": False},
+        {"room": "Asad's Room", "task_name": "Trash emptied", "is_critical": False},
+        {"room": "Asad's Room", "task_name": "Laundry basket checked", "is_critical": False},
+
+        # Asad's Bathroom
+        {"room": "Asad's Bathroom", "task_name": "Sink cleaned", "is_critical": False},
+        {"room": "Asad's Bathroom", "task_name": "Toilet cleaned", "is_critical": False},
+        {"room": "Asad's Bathroom", "task_name": "Shower cleaned", "is_critical": False},
+        {"room": "Asad's Bathroom", "task_name": "Mirror wiped", "is_critical": False},
+        {"room": "Asad's Bathroom", "task_name": "Trash emptied", "is_critical": False},
+        {"room": "Asad's Bathroom", "task_name": "Towels replaced", "is_critical": False},
+
+        # Study Room
+        {"room": "Study Room", "task_name": "Desk organized", "is_critical": False},
+        {"room": "Study Room", "task_name": "Books arranged", "is_critical": False},
+        {"room": "Study Room", "task_name": "Floor vacuumed", "is_critical": False},
+        {"room": "Study Room", "task_name": "Surfaces wiped", "is_critical": False},
+        {"room": "Study Room", "task_name": "Trash emptied", "is_critical": False},
+
+        # Kitchen
+        {"room": "Kitchen", "task_name": "Dishes done", "is_critical": False},
+        {"room": "Kitchen", "task_name": "Sink cleaned", "is_critical": False},
+        {"room": "Kitchen", "task_name": "Counters wiped", "is_critical": False},
+        {"room": "Kitchen", "task_name": "Stove wiped", "is_critical": False},
+        {"room": "Kitchen", "task_name": "Floor swept", "is_critical": False},
+        {"room": "Kitchen", "task_name": "Trash checked", "is_critical": False},
+
+        # Dining Area
+        {"room": "Dining Area", "task_name": "Table wiped", "is_critical": False},
+        {"room": "Dining Area", "task_name": "Chairs cleaned", "is_critical": False},
+        {"room": "Dining Area", "task_name": "Area swept", "is_critical": False},
+
+        # Sitting Area
+        {"room": "Sitting Area", "task_name": "Couch organized", "is_critical": False},
+        {"room": "Sitting Area", "task_name": "Cushions arranged", "is_critical": False},
+        {"room": "Sitting Area", "task_name": "Floor vacuumed", "is_critical": False},
+        {"room": "Sitting Area", "task_name": "Surfaces wiped", "is_critical": False},
+
+        # Hallways
+        {"room": "Hallways", "task_name": "Floor vacuumed", "is_critical": False},
+        {"room": "Hallways", "task_name": "Shoes organized", "is_critical": False},
+        {"room": "Hallways", "task_name": "Items removed", "is_critical": False},
+        {"room": "Hallways", "task_name": "Walls spot-cleaned", "is_critical": False},
+
+        # Downstairs Bathroom
+        {"room": "Downstairs Bathroom", "task_name": "Sink cleaned", "is_critical": False},
+        {"room": "Downstairs Bathroom", "task_name": "Toilet cleaned", "is_critical": False},
+        {"room": "Downstairs Bathroom", "task_name": "Mirror wiped", "is_critical": False},
+        {"room": "Downstairs Bathroom", "task_name": "Trash emptied", "is_critical": False},
+        {"room": "Downstairs Bathroom", "task_name": "Floor mopped", "is_critical": False},
+
+        # Stairs
+        {"room": "Stairs", "task_name": "Steps vacuumed", "is_critical": False},
+        {"room": "Stairs", "task_name": "Railings wiped", "is_critical": False},
+
+        # Office
+        {"room": "Office", "task_name": "Desk organized", "is_critical": False},
+        {"room": "Office", "task_name": "Trash emptied", "is_critical": False},
+        {"room": "Office", "task_name": "Floor vacuumed", "is_critical": False},
+        {"room": "Office", "task_name": "Surfaces wiped", "is_critical": False},
+
+        # Pet Care (PERSISTENT)
+        {"room": "Pet Care", "task_name": "Coco's food bowl full", "is_critical": True, "is_persistent": True},
+        {"room": "Pet Care", "task_name": "Coco's water bowl full", "is_critical": True, "is_persistent": True},
+        {"room": "Pet Care", "task_name": "Take Coco out (pee/poop)", "is_critical": True, "is_persistent": True},
+        {"room": "Pet Care", "task_name": "Feed birds", "is_critical": False, "is_persistent": True},
+        {"room": "Pet Care", "task_name": "Clean bird cages", "is_critical": False},
+        {"room": "Pet Care", "task_name": "Feed tortoise", "is_critical": False, "is_persistent": True},
+        {"room": "Pet Care", "task_name": "Tortoise water refreshed", "is_critical": False},
+
+        # Azlan's Needs
+        {"room": "Azlan's Needs", "task_name": "Refill Azlan's water bottles (min 5 in fridge)", "is_critical": False},
+
+        # General/Final Checks (CRITICAL)
+        {"room": "General/Final Checks", "task_name": "Everything in place — fix anything out of order", "is_critical": True},
+        {"room": "General/Final Checks", "task_name": "Trash taken out", "is_critical": True},
+        {"room": "General/Final Checks", "task_name": "All lights checked", "is_critical": True},
+        {"room": "General/Final Checks", "task_name": "Doors locked", "is_critical": True},
+    ]
+
+    task_count = 0
+    for task_data in tasks_data:
+        task = db.query(Task).filter(
+            Task.facility_id == facility.id,
+            Task.room == task_data["room"],
+            Task.task_name == task_data["task_name"]
+        ).first()
+
+        if not task:
+            task_data["facility_id"] = facility.id
+            task_data["assigned_role"] = caretaker_role.id
+            task_data.setdefault("is_persistent", False)
+
+            task = Task(**task_data)
+            db.add(task)
+            task_count += 1
+
+    db.commit()
+
+    return {
+        "message": "Database seeded successfully",
+        "facility": facility.name,
+        "roles": len(roles),
+        "shifts": len(shifts),
+        "tasks_created": task_count
+    }
 
 
 # =====================
