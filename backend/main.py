@@ -44,19 +44,20 @@ def init_admin():
             db.add(Role(name=role_name, active=True))
     db.commit()
 
+    admin_role = db.query(Role).filter(Role.name == "ADMIN").first()
+
+    # Get or create GRSCORP Household facility
+    facility = db.query(Facility).filter(Facility.name == "GRSCORP Household").first()
+    if not facility:
+        facility = db.query(Facility).first()
+    if not facility:
+        facility = Facility(name="GRSCORP Household")
+        db.add(facility)
+        db.commit()
+
+    # Check if admin exists
     admin_exists = db.query(Staff).filter(Staff.email == "amb@grscorp.us").first()
     if not admin_exists:
-        admin_role = db.query(Role).filter(Role.name == "ADMIN").first()
-
-        # Try to get GRSCORP Household facility, fallback to first facility or create default
-        facility = db.query(Facility).filter(Facility.name == "GRSCORP Household").first()
-        if not facility:
-            facility = db.query(Facility).first()
-        if not facility:
-            facility = Facility(name="GRSCORP Household")
-            db.add(facility)
-            db.commit()
-
         admin = Staff(
             email="amb@grscorp.us",
             password_hash=hash_password("pakiman"),
@@ -67,6 +68,11 @@ def init_admin():
         )
         db.add(admin)
         db.commit()
+    else:
+        # Update existing admin's facility to correct one
+        if admin_exists.facility_id != facility.id:
+            admin_exists.facility_id = facility.id
+            db.commit()
     db.close()
 
 init_admin()
@@ -938,7 +944,7 @@ def get_daily_dashboard(
     from datetime import datetime as dt
 
     try:
-        query_date = dt.strptime(date, "%Y-%m-%d").replace(tzinfo=EST).date()
+        query_date = dt.strptime(date, "%Y-%m-%d").date()
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
 
@@ -992,7 +998,7 @@ def get_daily_dashboard(
         for staff_id, metrics in staff_on_duty.items():
             completion_pct = (metrics["completed"] / metrics["total"] * 100) if metrics["total"] > 0 else 0
 
-            # Get latest completion timestamp (convert to EST)
+            # Get latest completion timestamp
             latest_yes = db.query(TaskEntry).filter(
                 TaskEntry.staff_id == staff_id,
                 TaskEntry.shift_id == shift.id,
@@ -1001,15 +1007,7 @@ def get_daily_dashboard(
                 TaskEntry.status == "yes"
             ).order_by(TaskEntry.timestamp.desc()).first()
 
-            if latest_yes:
-                # Convert UTC to EST if needed
-                ts = latest_yes.timestamp
-                if ts.tzinfo is None:
-                    ts = pytz.UTC.localize(ts)
-                ts_est = ts.astimezone(EST)
-                latest_completion = ts_est.isoformat()
-            else:
-                latest_completion = None
+            latest_completion = latest_yes.timestamp.isoformat() if latest_yes else None
 
             shift_staff.append({
                 "staff_id": metrics["staff_id"],
@@ -1058,7 +1056,7 @@ def get_weekly_dashboard(
     from datetime import datetime as dt, timedelta
 
     try:
-        start_date = dt.strptime(week_start, "%Y-%m-%d").replace(tzinfo=EST).date()
+        start_date = dt.strptime(week_start, "%Y-%m-%d").date()
         end_date = start_date + timedelta(days=6)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")

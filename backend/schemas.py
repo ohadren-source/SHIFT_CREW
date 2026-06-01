@@ -1,20 +1,7 @@
-from pydantic import BaseModel, EmailStr, field_serializer
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
 from enum import Enum
-import pytz
-
-# EST timezone converter
-EST = pytz.timezone('US/Eastern')
-
-def to_est(dt: datetime) -> datetime:
-    """Convert datetime to EST. If naive, assume UTC."""
-    if dt is None:
-        return None
-    if dt.tzinfo is None:
-        # Assume naive datetimes are UTC
-        dt = pytz.UTC.localize(dt)
-    return dt.astimezone(EST)
 
 
 class TaskStatusEnum(str, Enum):
@@ -139,10 +126,6 @@ class TaskEntryResponse(BaseModel):
     class Config:
         from_attributes = True
 
-    @field_serializer('timestamp', 'created_at')
-    def serialize_datetime(self, value: datetime) -> datetime:
-        return to_est(value)
-
 
 # =====================
 # CARRY-OVER SCHEMAS
@@ -244,10 +227,6 @@ class NoteResponse(BaseModel):
     class Config:
         from_attributes = True
 
-    @field_serializer('timestamp', 'created_at')
-    def serialize_datetime(self, value: datetime) -> datetime:
-        return to_est(value)
-
 
 # =====================
 # SUPPLY SCHEMAS
@@ -271,10 +250,6 @@ class SupplyResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-    @field_serializer('timestamp', 'created_at')
-    def serialize_datetime(self, value: datetime) -> datetime:
-        return to_est(value)
 
 
 # =====================
