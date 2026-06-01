@@ -1091,13 +1091,32 @@ def seed_data(db: Session = Depends(get_db)):
     else:
         entries_created = 0
 
+    # Diagnostic info
+    total_tasks = db.query(Task).filter(Task.facility_id == facility.id).count()
+    total_entries = db.query(TaskEntry).filter(TaskEntry.facility_id == facility.id).count()
+    total_entries_2026_06_01 = db.query(TaskEntry).filter(
+        TaskEntry.facility_id == facility.id,
+        TaskEntry.date == date_type(2026, 6, 1)
+    ).count()
+    staff_count = db.query(Staff).filter(Staff.facility_id == facility.id).count()
+    admin_count = db.query(Staff).filter(
+        Staff.facility_id == facility.id,
+        Staff.role_id == roles["ADMIN"].id
+    ).count()
+
     return {
         "message": "Database seeded successfully",
         "facility": facility.name,
         "roles": len(roles),
         "shifts": len(shifts),
         "tasks_created": task_count,
-        "sample_entries_created": entries_created
+        "total_tasks_in_db": total_tasks,
+        "sample_entries_created": entries_created,
+        "total_entries_in_db": total_entries,
+        "entries_for_2026_06_01": total_entries_2026_06_01,
+        "staff_on_facility": staff_count,
+        "admin_staff_on_facility": admin_count,
+        "admin_staff_exists": admin_staff is not None
     }
 
 
