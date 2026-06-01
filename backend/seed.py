@@ -43,8 +43,9 @@ def seed_database():
     # 2. CREATE FACILITY
     # =====================
     print("Creating facility...")
-    
-    facility = db.query(Facility).filter(Facility.name == "GRSCORP Household").first()
+
+    # Use facility_id=1 (must match init_admin)
+    facility = db.query(Facility).filter(Facility.id == 1).first()
     if not facility:
         facility = Facility(name="GRSCORP Household", location="Selkirk, NY")
         db.add(facility)
