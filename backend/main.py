@@ -1037,12 +1037,61 @@ def seed_data(db: Session = Depends(get_db)):
 
     db.commit()
 
+    # =====================
+    # 5. CREATE SAMPLE TASK ENTRIES FOR 2026-06-01
+    # =====================
+    # Create sample task entries so dashboard shows data
+    from datetime import date as date_type
+
+    admin_staff = db.query(Staff).filter(
+        Staff.facility_id == facility.id,
+        Staff.role_id == roles["ADMIN"].id
+    ).first()
+
+    if admin_staff and db.query(TaskEntry).filter(
+        TaskEntry.facility_id == facility.id,
+        TaskEntry.date == date_type(2026, 6, 1)
+    ).count() == 0:
+        # Create entries for first shift with admin user
+        first_shift = db.query(Shift).filter(
+            Shift.facility_id == facility.id,
+            Shift.name == "1st Shift (AM)"
+        ).first()
+
+        sample_tasks = db.query(Task).filter(
+            Task.facility_id == facility.id,
+            Task.assigned_role == caretaker_role.id
+        ).limit(20).all()
+
+        entry_count = 0
+        for idx, task in enumerate(sample_tasks):
+            status = "yes" if idx % 3 != 0 else "no"  # 2/3 completed, 1/3 missed
+            entry = TaskEntry(
+                task_id=task.id,
+                staff_id=admin_staff.id,
+                shift_id=first_shift.id,
+                facility_id=facility.id,
+                date=date_type(2026, 6, 1),
+                status=status,
+                notes=f"Logged during seeding - {task.task_name}",
+                timestamp=get_est_now(),
+                carry_over=False
+            )
+            db.add(entry)
+            entry_count += 1
+
+        db.commit()
+        entries_created = entry_count
+    else:
+        entries_created = 0
+
     return {
         "message": "Database seeded successfully",
         "facility": facility.name,
         "roles": len(roles),
         "shifts": len(shifts),
-        "tasks_created": task_count
+        "tasks_created": task_count,
+        "sample_entries_created": entries_created
     }
 
 
