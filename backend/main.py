@@ -1038,18 +1038,30 @@ def seed_data(db: Session = Depends(get_db)):
     db.commit()
 
     # =====================
-    # 5. CREATE SAMPLE TASK ENTRIES FOR 2026-06-01
+    # 5. CREATE SAMPLE CARETAKER STAFF & TASK ENTRIES FOR 2026-06-01
     # =====================
-    # Create sample task entries so dashboard shows data
+    # Create a test caretaker (not admin) so task logging is role-appropriate
     from datetime import date as date_type
 
-    admin_staff = db.query(Staff).filter(
+    caretaker_staff = db.query(Staff).filter(
         Staff.facility_id == facility.id,
-        Staff.role_id == roles["ADMIN"].id
+        Staff.role_id == caretaker_role.id
     ).first()
 
-    if admin_staff:
-        # Create entries for first shift with admin user
+    if not caretaker_staff:
+        caretaker_staff = Staff(
+            email="caretaker@shift-crew.test",
+            password_hash=hash_password("test123"),
+            name="Test Caretaker",
+            role_id=caretaker_role.id,
+            facility_id=facility.id,
+            first_login=False
+        )
+        db.add(caretaker_staff)
+        db.commit()
+
+    if caretaker_staff:
+        # Create entries for first shift with caretaker staff
         first_shift = db.query(Shift).filter(
             Shift.facility_id == facility.id,
             Shift.name == "1st Shift (AM)"
@@ -1060,7 +1072,7 @@ def seed_data(db: Session = Depends(get_db)):
             TaskEntry.facility_id == facility.id,
             TaskEntry.date == date_type(2026, 6, 1),
             TaskEntry.shift_id == first_shift.id,
-            TaskEntry.staff_id == admin_staff.id
+            TaskEntry.staff_id == caretaker_staff.id
         ).delete()
         db.commit()
 
@@ -1074,7 +1086,7 @@ def seed_data(db: Session = Depends(get_db)):
             status = TaskStatus.YES if idx % 3 != 0 else TaskStatus.NO  # 2/3 completed, 1/3 missed
             entry = TaskEntry(
                 task_id=task.id,
-                staff_id=admin_staff.id,
+                staff_id=caretaker_staff.id,
                 shift_id=first_shift.id,
                 facility_id=facility.id,
                 date=date_type(2026, 6, 1),
