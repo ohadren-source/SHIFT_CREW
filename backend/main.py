@@ -1048,15 +1048,21 @@ def seed_data(db: Session = Depends(get_db)):
         Staff.role_id == roles["ADMIN"].id
     ).first()
 
-    if admin_staff and db.query(TaskEntry).filter(
-        TaskEntry.facility_id == facility.id,
-        TaskEntry.date == date_type(2026, 6, 1)
-    ).count() == 0:
+    if admin_staff:
         # Create entries for first shift with admin user
         first_shift = db.query(Shift).filter(
             Shift.facility_id == facility.id,
             Shift.name == "1st Shift (AM)"
         ).first()
+
+        # Clear existing entries for this date/shift/staff (to allow reseeding)
+        db.query(TaskEntry).filter(
+            TaskEntry.facility_id == facility.id,
+            TaskEntry.date == date_type(2026, 6, 1),
+            TaskEntry.shift_id == first_shift.id,
+            TaskEntry.staff_id == admin_staff.id
+        ).delete()
+        db.commit()
 
         sample_tasks = db.query(Task).filter(
             Task.facility_id == facility.id,
