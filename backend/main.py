@@ -46,10 +46,10 @@ def init_admin():
 
     admin_role = db.query(Role).filter(Role.name == "ADMIN").first()
 
-    # Get first facility or create default
-    facility = db.query(Facility).first()
+    # Get or create facility_id=1 (matches /seed endpoint)
+    facility = db.query(Facility).filter(Facility.id == 1).first()
     if not facility:
-        facility = Facility(name="Default Facility")
+        facility = Facility(id=1, name="GRSCORP Household", location="Selkirk, NY")
         db.add(facility)
         db.commit()
 
@@ -67,7 +67,7 @@ def init_admin():
         db.add(admin)
         db.commit()
     else:
-        # Ensure admin is on the same facility as data
+        # Ensure admin is on facility_id=1
         if admin_exists.facility_id != facility.id:
             admin_exists.facility_id = facility.id
             db.commit()
