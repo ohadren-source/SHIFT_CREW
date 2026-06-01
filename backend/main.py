@@ -1284,11 +1284,15 @@ def get_weekly_dashboard(
     current_admin: Staff = Depends(check_admin),
     db: Session = Depends(get_db)
 ):
-    """Get weekly dashboard metrics (admin only)"""
+    """Get weekly dashboard metrics for Mon-Sun week (admin only)"""
     from datetime import datetime as dt, timedelta
 
     try:
-        start_date = dt.strptime(week_start, "%Y-%m-%d").date()
+        input_date = dt.strptime(week_start, "%Y-%m-%d").date()
+        # Snap to Monday of that week (weekday() returns 0 for Monday)
+        days_since_monday = input_date.weekday()
+        start_date = input_date - timedelta(days=days_since_monday)
+        # Sunday is 6 days after Monday
         end_date = start_date + timedelta(days=6)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
