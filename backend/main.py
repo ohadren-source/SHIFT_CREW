@@ -1129,11 +1129,13 @@ def seed_data(db: Session = Depends(get_db)):
         Staff.facility_id == facility.id,
         Staff.role_id == caretaker_role.id
     ).count()
-    entries_by_caretaker = db.query(TaskEntry).filter(
-        TaskEntry.facility_id == facility.id,
-        TaskEntry.date == date_type(2026, 6, 1),
-        TaskEntry.staff_id == caretaker_staff.id if caretaker_staff else False
-    ).count() if caretaker_staff else 0
+    entries_by_caretaker = 0
+    if caretaker_staff:
+        entries_by_caretaker = db.query(TaskEntry).filter(
+            TaskEntry.facility_id == facility.id,
+            TaskEntry.date == date_type(2026, 6, 1),
+            TaskEntry.staff_id == caretaker_staff.id
+        ).count()
 
     return {
         "message": "Database seeded successfully",
