@@ -32,6 +32,21 @@ def get_est_today():
     """Get today's date in Eastern Standard Time"""
     return get_est_now().date()
 
+def format_timestamp_with_tz(dt):
+    """Format datetime with timezone info, adding EST offset if missing"""
+    if not dt:
+        return None
+    # If datetime is naive (no timezone), assume it's EST and add offset
+    if dt.tzinfo is None:
+        # Get current offset for EDT/EST (-4 or -5 hours)
+        est_now = datetime.now(EST)
+        offset = est_now.strftime('%z')  # Returns e.g., '-0400'
+        iso_str = dt.isoformat()
+        # Add timezone offset: 2026-05-21T18:55:59 -> 2026-05-21T18:55:59-04:00
+        return f"{iso_str}{offset[:3]}:{offset[3:]}"
+    # If timezone-aware, just return isoformat
+    return dt.isoformat()
+
 # Initialize admin on startup
 def init_admin():
     db = next(get_db())
@@ -516,8 +531,8 @@ def get_notes(
                 "facility_id": note.facility_id,
                 "staff_id": note.staff_id,
                 "content": note.content,
-                "timestamp": note.timestamp.isoformat() if note.timestamp else None,
-                "created_at": note.created_at.isoformat() if note.created_at else None,
+                "timestamp": format_timestamp_with_tz(note.timestamp),
+                "created_at": format_timestamp_with_tz(note.created_at),
                 "staff_name": note.staff.name or note.staff.email
             }
             for note in notes
@@ -592,8 +607,8 @@ def get_supplies(
                 "staff_id": supply.staff_id,
                 "supply_name": supply.supply_name,
                 "quantity": supply.quantity,
-                "timestamp": supply.timestamp.isoformat() if supply.timestamp else None,
-                "created_at": supply.created_at.isoformat() if supply.created_at else None,
+                "timestamp": format_timestamp_with_tz(supply.timestamp),
+                "created_at": format_timestamp_with_tz(supply.created_at),
                 "staff_name": supply.staff.name or supply.staff.email
             }
             for supply in supplies
